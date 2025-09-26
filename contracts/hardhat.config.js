@@ -39,6 +39,13 @@ module.exports = {
       accounts: [`0x${SEPOLIA_API_KEY}`],
       chainId: 11155111,
     },
+    kdaTestnet: {
+      url: "https://evm-testnet.chainweb.com/chainweb/0.0/evm-testnet/chain/20/evm/rpc",
+      accounts: SEPOLIA_API_KEY ? [`0x${SEPOLIA_API_KEY}`] : [],
+      chainId: 5920, // Updated to the actual chain ID
+      gasPrice: 1000000000, // 1 gwei
+      timeout: 60000, // 60 seconds
+    },
     hardhat: {
       // This is the default network when you run `npx hardhat test`
       // Remove gas limits to allow unlimited gas for testing
