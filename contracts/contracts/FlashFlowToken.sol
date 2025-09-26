@@ -6,8 +6,8 @@ pragma solidity ^0.8.17;
  * @dev Minimal ERC20 for demo - anyone can mint!
  */
 contract FlashFlowToken {
-    string public name = "tFlash USD";
-    string public symbol = "tFUSD";
+    string public name = "FlashFlow USD";
+    string public symbol = "fUSD";
     uint8 public decimals = 18;
     uint256 public totalSupply;
 
