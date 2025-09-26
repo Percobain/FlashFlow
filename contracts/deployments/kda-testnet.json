@@ -1,0 +1,17 @@
+{
+  "network": "kdaTestnet",
+  "chainId": 5920,
+  "timestamp": "2025-09-24T14:19:27.975Z",
+  "deployer": "0x71AfE44200A819171a0687b1026E8d4424472Ff8",
+  "contracts": {
+    "token": "0x5547Bbf729Fee6027d1cD77f512b0d05F8Bb2c1D",
+    "pool": "0xc47bA4fA2B3713Fe1B1d62b5aF18B649aD36329A",
+    "agent": "0x5630263676cCB2cE59Bebb8084d36d77136b8d86"
+  },
+  "transactionHashes": {
+    "token": "0x799e7b99db5a18f4df372c0d54445dcfa70c90dfb12d9d921ec1c18269223870",
+    "pool": "0x4c5b787f58ee4454cce72746c7ac74e3096e3dc323248f3dbea82d38af3fab51",
+    "agent": "0xa208c0c15d32369d14aed6f410eb2356033b28dc5c148bf7a8ac490dce72a993",
+    "funding": "0xac486cf3f105fbb89128c79b52f254cca5c060cd5afffb6e3c7f62798d5465e8"
+  }
+}
