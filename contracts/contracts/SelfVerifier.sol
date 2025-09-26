@@ -8,11 +8,11 @@ import {SelfUtils} from "@selfxyz/contracts/contracts/libraries/SelfUtils.sol";
 import {IIdentityVerificationHubV2} from "@selfxyz/contracts/contracts/interfaces/IIdentityVerificationHubV2.sol";
 
 /**
- * @title ProofOfHuman
+ * @title SelfVerifier
  * @notice Test implementation of SelfVerificationRoot for the docs
  * @dev This contract provides a concrete implementation of the abstract SelfVerificationRoot
  */
-contract ProofOfHuman is SelfVerificationRoot {
+contract SelfVerifier is SelfVerificationRoot {
     // Storage for testing purposes
     SelfStructs.VerificationConfigV2 public verificationConfig;
     bytes32 public verificationConfigId;
