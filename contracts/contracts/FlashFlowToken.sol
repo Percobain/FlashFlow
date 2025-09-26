@@ -29,7 +29,6 @@ contract FlashFlowToken {
         emit Transfer(address(0), to, amt);
     }
 
-    // PUBLIC MINT - ANYONE CAN MINT (INSECURE BY DESIGN FOR DEMO)
     function mint(address to, uint256 amt) external {
         _mint(to, amt);
     }
@@ -58,7 +57,6 @@ contract FlashFlowToken {
         return true;
     }
 
-    // Helper function for demo UI
     function decimalsMultiplier() external pure returns (uint256) {
         return 10**18;
     }

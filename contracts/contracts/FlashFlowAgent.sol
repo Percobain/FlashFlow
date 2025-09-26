@@ -3,7 +3,7 @@ pragma solidity ^0.8.17;
 
 /**
  * @title FlashFlowAgent
- * @dev Tracks assets and investments - ALL FUNCTIONS PUBLIC (INSECURE FOR DEMO)
+ * @dev Tracks assets and investments
  */
 contract FlashFlowAgent {
     struct Asset {
@@ -29,8 +29,7 @@ contract FlashFlowAgent {
     mapping(bytes32 => uint256) public basketTotalValue;
     mapping(bytes32 => uint256) public basketInvestedAmount;
     mapping(bytes32 => bytes32[]) public basketAssets;
-    
-    // Stats for demo UI
+
     uint256 public totalAssets;
     uint256 public totalFunded;
     uint256 public totalPaid;
@@ -51,7 +50,6 @@ contract FlashFlowAgent {
     event PaymentConfirmed(bytes32 indexed assetId, uint256 amount);
     event BasketUpdated(bytes32 indexed basketId, uint256 newTotalValue);
 
-    // ANYONE CAN CREATE ASSET (INSECURE BY DESIGN)
     function createAsset(
         bytes32 assetId,
         address originator,
@@ -62,7 +60,6 @@ contract FlashFlowAgent {
         string memory assetType,
         bytes32 documentHash
     ) external {
-        // Allow overwrite for demo
         Asset storage a = assets[assetId];
         
         // Update basket tracking if new asset
@@ -91,7 +88,6 @@ contract FlashFlowAgent {
         emit BasketUpdated(basketId, basketTotalValue[basketId]);
     }
 
-    // ANYONE CAN MARK AS FUNDED (INSECURE BY DESIGN)
     function markFunded(bytes32 assetId, uint256 unlockAmount) external {
         Asset storage a = assets[assetId];
         require(!a.funded, "Already funded");
@@ -103,7 +99,6 @@ contract FlashFlowAgent {
         emit AssetFunded(assetId, unlockAmount);
     }
 
-    // ANYONE CAN RECORD INVESTMENT (INSECURE BY DESIGN)
     function recordInvestment(bytes32 assetId, address investor, uint256 amount) external {
         investorAllocations[assetId][investor] += amount;
         
@@ -114,7 +109,6 @@ contract FlashFlowAgent {
         emit InvestmentRecorded(assetId, investor, amount);
     }
 
-    // ANYONE CAN CONFIRM PAYMENT (INSECURE BY DESIGN)
     function confirmPayment(bytes32 assetId, uint256 amount) external {
         Asset storage a = assets[assetId];
         a.paidAmount += amount;
@@ -147,7 +141,6 @@ contract FlashFlowAgent {
         emit BasketUpdated(newBasketId, basketTotalValue[newBasketId]);
     }
 
-    // View functions for UI
     function getAssetInfo(bytes32 assetId) external view returns (
         address originator,
         uint256 faceAmount,

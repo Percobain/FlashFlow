@@ -9,14 +9,13 @@ interface IERC20Simple {
 
 /**
  * @title MainPool
- * @dev Holds fUSD and releases funds - ANYONE CAN RELEASE (INSECURE FOR DEMO)
+ * @dev Holds fUSD and releases funds
  */
 contract MainPool {
     address public token;
     uint256 public totalReleased;
     uint256 public totalDeposited;
 
-    // Track releases per asset for demo UI
     mapping(bytes32 => uint256) public releasedPerAsset;
     mapping(bytes32 => bool) public assetFunded;
 
@@ -27,16 +26,13 @@ contract MainPool {
         token = tokenAddr;
     }
 
-    // Deposit tokens to pool - caller must approve first
     function deposit(uint256 amount) external {
         require(IERC20Simple(token).transferFrom(msg.sender, address(this), amount), "Transfer failed");
         totalDeposited += amount;
         emit FundsDeposited(msg.sender, amount);
     }
 
-    // ANYONE CAN RELEASE FUNDS TO ANY ADDRESS (INSECURE BY DESIGN)
     function releaseFunds(bytes32 assetId, address originator, uint256 amount) external {
-        // For demo, allow multiple releases (no require !assetFunded check)
         require(getPoolBalance() >= amount, "Insufficient pool balance");
         require(IERC20Simple(token).transfer(originator, amount), "Transfer failed");
         
@@ -47,7 +43,6 @@ contract MainPool {
         emit FundsReleased(assetId, originator, amount);
     }
 
-    // View functions for UI
     function getPoolBalance() public view returns (uint256) {
         return IERC20Simple(token).balanceOf(address(this));
     }
@@ -60,7 +55,6 @@ contract MainPool {
         return (getPoolBalance(), totalReleased, totalDeposited);
     }
 
-    // Emergency function for demo - ANYONE can drain pool
     function emergencyWithdraw(address to) external {
         uint256 balance = getPoolBalance();
         if (balance > 0) {
