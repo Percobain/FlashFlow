@@ -28,8 +28,18 @@ initBlockchain();
 
 // Routes
 const assetRoutes = require("./routes/assets");
+const investmentRoutes = require("./routes/investments");
+const basketRoutes = require("./routes/baskets");
+const paymentRoutes = require("./routes/payments");
+const userRoutes = require("./routes/users");
+const adminRoutes = require("./routes/admin");
 
 app.use("/api/assets", assetRoutes);
+app.use("/api/investments", investmentRoutes);
+app.use("/api/baskets", basketRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Health check
 app.get("/", (req, res) => {
@@ -37,7 +47,20 @@ app.get("/", (req, res) => {
         message: "FlashFlow Backend API",
         status: "running",
         timestamp: new Date().toISOString(),
+        version: "1.0.0",
+        endpoints: {
+            assets: "/api/assets",
+            investments: "/api/investments", 
+            baskets: "/api/baskets",
+            payments: "/api/payments",
+            users: "/api/users",
+            admin: "/api/admin"
+        }
     });
+});
+
+app.get("/health",  (req, res) => {
+    res.json("Cron huh?")
 });
 
 // Global error handler
@@ -46,13 +69,15 @@ app.use((err, req, res, next) => {
     res.status(500).json({
         success: false,
         error: "Internal server error",
+        ...(process.env.NODE_ENV === 'development' && { details: err.message })
     });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
     console.log(`FlashFlow Backend listening on port ${PORT}`);
     console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
+    console.log(`API Documentation available at http://localhost:${PORT}/`);
 });
 
 module.exports = app;
