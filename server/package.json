@@ -19,6 +19,7 @@
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
+    "ethers": "^5.8.0",
     "exiftool-vendored": "^30.5.0",
     "express": "^5.1.0",
     "helmet": "^8.1.0",
