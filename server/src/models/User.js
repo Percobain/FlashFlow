@@ -19,122 +19,160 @@ const UserSchema = new mongoose.Schema({
     default: ['investor']
   },
   
-  // KYC Information
+  // KYC Information with Self Protocol support
   kycStatus: { 
     type: String, 
     enum: ['pending', 'verified', 'rejected', 'not_started'],
     default: 'not_started'
   },
   kycData: {
+    // Self Protocol specific fields
+    selfId: String,
+    verificationMethod: {
+      type: String,
+      enum: ['self_protocol', 'demo_skip', 'manual'],
+      default: 'self_protocol'
+    },
+    verifiedAt: Date,
+    
+    // KYC attributes from Self Protocol
+    country: String,
+    ageVerified: { type: Boolean, default: false },
+    
+    // Additional verification data
+    txHash: String, // Blockchain transaction hash for verification
+    configId: String, // Self Protocol config ID used
+    
+    // Traditional KYC fields (backup)
     fullName: String,
     dateOfBirth: Date,
-    country: String,
-    documentType: { type: String, enum: ['passport', 'drivers_license', 'national_id'] },
+    nationality: String,
+    documentType: String,
     documentNumber: String,
-    documentExpiry: Date,
-    verificationLevel: { type: String, enum: ['basic', 'enhanced', 'premium'], default: 'basic' },
-    submittedAt: Date,
-    verifiedAt: Date,
-    rejectedAt: Date,
-    rejectionReason: String
+    documentHash: String
   },
   
-  // Profile Information
+  // User Profile
   profile: {
     displayName: String,
     bio: String,
-    avatar: String,
-    company: String,
+    avatarUrl: String,
     website: String,
-    location: String,
-    timezone: String
+    twitter: String,
+    linkedin: String
   },
   
   // Investment Preferences
-  investmentProfile: {
-    riskTolerance: { type: String, enum: ['conservative', 'moderate', 'aggressive'], default: 'moderate' },
-    preferredAssetTypes: [{ type: String, enum: ['invoice', 'saas', 'creator', 'rental', 'luxury'] }],
-    minimumInvestment: { type: Number, default: 100 },
-    maximumInvestment: { type: Number, default: 10000 },
-    autoInvest: { type: Boolean, default: false },
+  preferences: {
+    riskTolerance: {
+      type: String,
+      enum: ['low', 'medium', 'high'],
+      default: 'medium'
+    },
+    preferredAssetTypes: {
+      type: [String],
+      enum: ['invoice', 'creator', 'saas', 'rental', 'luxury'],
+      default: ['invoice']
+    },
+    minInvestment: { type: Number, default: 100 },
+    maxInvestment: { type: Number, default: 10000 },
+    targetAPY: { type: Number, default: 8 }
+  },
+  
+  // Settings
+  settings: {
     notifications: {
       email: { type: Boolean, default: true },
-      browser: { type: Boolean, default: true },
+      push: { type: Boolean, default: true },
       sms: { type: Boolean, default: false }
-    }
+    },
+    privacy: {
+      showProfile: { type: Boolean, default: true },
+      showInvestments: { type: Boolean, default: false }
+    },
+    // Demo/Testing settings
+    skipVerification: { type: Boolean, default: false }
   },
   
   // Statistics
   stats: {
     totalInvested: { type: Number, default: 0 },
-    totalEarned: { type: Number, default: 0 },
-    totalAssets: { type: Number, default: 0 },
-    successfulExits: { type: Number, default: 0 },
-    averageROI: { type: Number, default: 0 },
-    lastActiveAt: { type: Date, default: Date.now }
+    totalReturns: { type: Number, default: 0 },
+    activeInvestments: { type: Number, default: 0 },
+    successfulInvestments: { type: Number, default: 0 },
+    averageROI: { type: Number, default: 0 }
   },
   
-  // Settings
-  settings: {
-    currency: { type: String, default: 'USD' },
-    language: { type: String, default: 'en' },
-    twoFactorEnabled: { type: Boolean, default: false },
-    emailNotifications: { type: Boolean, default: true },
-    marketingEmails: { type: Boolean, default: false }
-  },
-  
-  // Security
-  lastLoginAt: Date,
-  loginCount: { type: Number, default: 0 },
-  isActive: { type: Boolean, default: true },
-  isSuspended: { type: Boolean, default: false },
-  
-  // Testing flags
-  skipVerification: { type: Boolean, default: false } // For testing purposes
-}, {
-  timestamps: true
+  // Timestamps
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+  lastLoginAt: Date
 });
 
-// Indexes for performance
+// Index for efficient queries
 UserSchema.index({ address: 1 });
-UserSchema.index({ email: 1 });
 UserSchema.index({ kycStatus: 1 });
-UserSchema.index({ 'userType': 1 });
+UserSchema.index({ userType: 1 });
 
-// Methods
-UserSchema.methods.updateLastActive = function() {
-  this.stats.lastActiveAt = new Date();
-  this.lastLoginAt = new Date();
-  this.loginCount += 1;
-  return this.save();
-};
+// Update the updatedAt field on save
+UserSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
+});
 
+// Virtual field for display name
+UserSchema.virtual('displayName').get(function() {
+  return this.profile?.displayName || `${this.address.slice(0, 6)}...${this.address.slice(-4)}`;
+});
+
+// Methods for verification logic
 UserSchema.methods.canInvest = function() {
-  // Allow testing without verification if skipVerification is true
-  if (this.skipVerification) {
-    return this.isActive && 
-           !this.isSuspended &&
-           this.userType.includes('investor');
+  // Allow investment if KYC verified OR skip verification is enabled (demo mode)
+  if (this.settings?.skipVerification) {
+    return true;
   }
   
   return this.kycStatus === 'verified' && 
-         this.isActive && 
-         !this.isSuspended &&
          this.userType.includes('investor');
 };
 
 UserSchema.methods.canSell = function() {
-  // Allow testing without verification if skipVerification is true
-  if (this.skipVerification) {
-    return this.isActive && 
-           !this.isSuspended &&
-           this.userType.includes('seller');
+  // Allow selling if KYC verified OR skip verification is enabled (demo mode)
+  if (this.settings?.skipVerification) {
+    return true;
   }
   
   return this.kycStatus === 'verified' && 
-         this.isActive && 
-         !this.isSuspended &&
          this.userType.includes('seller');
+};
+
+UserSchema.methods.canBuy = function() {
+  // Allow buying if KYC verified OR skip verification is enabled (demo mode)
+  if (this.settings?.skipVerification) {
+    return true;
+  }
+  
+  return this.kycStatus === 'verified' && 
+         this.userType.includes('buyer');
+};
+
+UserSchema.methods.isVerified = function() {
+  return this.kycStatus === 'verified' || this.settings?.skipVerification;
+};
+
+// Static methods
+UserSchema.statics.findByAddress = function(address) {
+  return this.findOne({ address: address.toLowerCase() });
+};
+
+UserSchema.statics.findVerifiedInvestors = function() {
+  return this.find({ 
+    $or: [
+      { kycStatus: 'verified' },
+      { 'settings.skipVerification': true }
+    ],
+    userType: 'investor' 
+  });
 };
 
 module.exports = mongoose.model('User', UserSchema);

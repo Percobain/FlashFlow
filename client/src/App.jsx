@@ -16,6 +16,7 @@ import BasketDetails from './pages/BasketDetails';
 import Dashboard from './pages/Dashboard';
 import AIOracle from './pages/AIOracle';
 import Reputation from './pages/Reputation';
+import KYCTest from './pages/KYCTest';
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/ai-oracle" element={<AIOracle />} />
           <Route path="/reputation" element={<Reputation />} />
+          <Route path="/kyc-test" element={<KYCTest />} /> 
         </Routes>
       </Layout>
       <Toaster 
