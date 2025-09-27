@@ -2,7 +2,7 @@ require("@nomicfoundation/hardhat-toolbox");
 require("@openzeppelin/hardhat-upgrades");
 require("dotenv").config();
 
-const { ALCHEMY_API_KEY, ETHERSCAN_API_KEY, SEPOLIA_API_KEY , ALFAJORES_PRIV_KEY} = process.env;
+const { ALCHEMY_API_KEY, ETHERSCAN_API_KEY, SEPOLIA_API_KEY } = process.env;
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
@@ -46,10 +46,10 @@ module.exports = {
       gasPrice: 1000000000, // 1 gwei
       timeout: 60000, // 60 seconds
     },
-    alfajores: {
-      url: "https://alfajores-forno.celo-testnet.org",
-      accounts: [ALFAJORES_PRIV_KEY],
-      chainId: 44787,
+    celoTestnet: {
+      url: "https://forno.celo-sepolia.celo-testnet.org",
+      accounts: [`0x${SEPOLIA_API_KEY}`],
+      chainId: 11142220,
     },
     hardhat: {
       // This is the default network when you run `npx hardhat test`

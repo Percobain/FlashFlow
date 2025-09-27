@@ -22,7 +22,7 @@
     "@openzeppelin/contracts": "^5.4.0",
     "@openzeppelin/contracts-upgradeable": "^5.4.0",
     "@openzeppelin/hardhat-upgrades": "^3.9.1",
-    "@selfxyz/contracts": "^1.2.0",
+    "@selfxyz/contracts": "^1.2.3",
     "dotenv": "^17.2.1"
   }
 }
