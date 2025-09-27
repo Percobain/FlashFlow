@@ -37,7 +37,8 @@ const basketRoutes = require("./routes/baskets");
 const paymentRoutes = require("./routes/payments");
 const userRoutes = require("./routes/users");
 const adminRoutes = require("./routes/admin");
-const blockchainRoutes = require("./routes/blockchain");
+// Import the new blockchain routes
+const blockchainRoutes = require('./routes/blockchain');
 const storageRoutes = require("./routes/storage");
 
 // Import services

@@ -237,7 +237,7 @@ export const Web3Provider = ({ children }) => {
     }
   };
 
-  // ===== SMART CONTRACT INTERACTIONS =====
+  // ===== SMART CONTRACT INTERACTIONS (User-signed) =====
 
   // Create asset (with seller flow initiation)
   const createAsset = async (assetData) => {
@@ -251,8 +251,40 @@ export const Web3Provider = ({ children }) => {
         throw new Error('KYC verification required before creating assets');
       }
       
-      return await backendService.completeAssetTokenization(assetData, web3Service);
+      // Get transaction data from backend
+      const response = await fetch('http://localhost:3000/api/blockchain/transaction-data/create-asset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assetData })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to get transaction data');
+      }
+      
+      const { transactionData, assetId, basketId } = await response.json();
+      
+      // User signs and sends transaction
+      const tx = await web3Service.signer.sendTransaction(transactionData);
+      toast.loading('Creating asset on blockchain...', { id: 'create-asset' });
+      
+      const receipt = await tx.wait();
+      toast.success('Asset created successfully!', { id: 'create-asset' });
+      
+      // Sync transaction with backend
+      await fetch('http://localhost:3000/api/blockchain/sync-transaction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          txHash: receipt.transactionHash,
+          type: 'create_asset',
+          metadata: { assetId, basketId }
+        })
+      });
+      
+      return { receipt, assetId, basketId };
     } catch (error) {
+      toast.error('Failed to create asset', { id: 'create-asset' });
       console.error('Failed to create asset:', error);
       throw error;
     } finally {
@@ -273,23 +305,68 @@ export const Web3Provider = ({ children }) => {
         throw new Error('KYC verification required before investing');
       }
       
-      // First approve tokens if needed
-      if (investmentData.amount > 0) {
-        await web3Service.approveToken(
-          web3Service.contracts.flashFlowAgent.target,
-          investmentData.amount
-        );
+      // Step 1: Approve tokens
+      const approveResponse = await fetch('http://localhost:3000/api/blockchain/transaction-data/approve-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          spender: web3Service.contracts.flashFlowAgent.target,
+          amount: investmentData.amount
+        })
+      });
+      
+      if (!approveResponse.ok) {
+        throw new Error('Failed to get approval transaction data');
       }
       
-      const result = await backendService.completeInvestmentWorkflow(investmentData, web3Service);
+      const { transactionData: approveData } = await approveResponse.json();
+      
+      toast.loading('Approving tokens...', { id: 'approve' });
+      const approveTx = await web3Service.signer.sendTransaction(approveData);
+      await approveTx.wait();
+      toast.success('Tokens approved!', { id: 'approve' });
+      
+      // Step 2: Record investment
+      const investResponse = await fetch('http://localhost:3000/api/blockchain/transaction-data/record-investment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assetId: investmentData.assetId,
+          investor: account,
+          amount: investmentData.amount
+        })
+      });
+      
+      if (!investResponse.ok) {
+        throw new Error('Failed to get investment transaction data');
+      }
+      
+      const { transactionData: investData } = await investResponse.json();
+      
+      toast.loading('Recording investment...', { id: 'invest' });
+      const investTx = await web3Service.signer.sendTransaction(investData);
+      const receipt = await investTx.wait();
+      toast.success('Investment recorded successfully!', { id: 'invest' });
+      
+      // Sync transaction with backend
+      await fetch('http://localhost:3000/api/blockchain/sync-transaction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          txHash: receipt.transactionHash,
+          type: 'record_investment',
+          metadata: investmentData
+        })
+      });
       
       // Update user stats
       await updateUserStats({
         invested: investmentData.amount
       });
       
-      return result;
+      return receipt;
     } catch (error) {
+      toast.error('Failed to invest in asset');
       console.error('Failed to invest in asset:', error);
       throw error;
     } finally {
@@ -333,17 +410,60 @@ export const Web3Provider = ({ children }) => {
   const depositToPool = async (amount) => {
     try {
       setLoading(true);
-      const result = await web3Service.depositToPool(amount);
       
-      // Sync with backend
-      await backendService.syncBlockchainData(account, {
-        type: 'pool_deposit',
-        amount,
-        transactionHash: result.hash
+      // Step 1: Approve tokens for pool
+      const approveResponse = await fetch('http://localhost:3000/api/blockchain/transaction-data/approve-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          spender: web3Service.contracts.mainPool.target,
+          amount
+        })
       });
       
-      return result;
+      if (!approveResponse.ok) {
+        throw new Error('Failed to get approval transaction data');
+      }
+      
+      const { transactionData: approveData } = await approveResponse.json();
+      
+      toast.loading('Approving tokens for pool...', { id: 'approve-pool' });
+      const approveTx = await web3Service.signer.sendTransaction(approveData);
+      await approveTx.wait();
+      toast.success('Tokens approved for pool!', { id: 'approve-pool' });
+      
+      // Step 2: Deposit to pool
+      const depositResponse = await fetch('http://localhost:3000/api/blockchain/transaction-data/deposit-pool', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount })
+      });
+      
+      if (!depositResponse.ok) {
+        throw new Error('Failed to get deposit transaction data');
+      }
+      
+      const { transactionData: depositData } = await depositResponse.json();
+      
+      toast.loading('Depositing to pool...', { id: 'deposit' });
+      const depositTx = await web3Service.signer.sendTransaction(depositData);
+      const receipt = await depositTx.wait();
+      toast.success('Deposited to pool successfully!', { id: 'deposit' });
+      
+      // Sync transaction with backend
+      await fetch('http://localhost:3000/api/blockchain/sync-transaction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          txHash: receipt.transactionHash,
+          type: 'pool_deposit',
+          metadata: { amount }
+        })
+      });
+      
+      return receipt;
     } catch (error) {
+      toast.error('Failed to deposit to pool');
       console.error('Failed to deposit to pool:', error);
       throw error;
     } finally {

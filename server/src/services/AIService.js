@@ -1,65 +1,54 @@
-const OpenAI = require("openai");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 class AIService {
     constructor() {
-        if (process.env.OPENAI_API_KEY) {
-            this.openai = new OpenAI({
-                apiKey: process.env.OPENAI_API_KEY,
-            });
+        // Initialize Gemini only
+        if (process.env.GEMINI_API_KEY) {
+            this.gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+            this.geminiModel = this.gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
         } else {
             console.warn(
-                "Warning: OPENAI_API_KEY not set. AI analysis will use fallback scoring."
+                "Warning: GEMINI_API_KEY not set. AI analysis will use fallback scoring."
             );
-            this.openai = null;
+            this.gemini = null;
         }
     }
 
     async analyzeRisk(assetData) {
         const { type, amount, documents, historicalData = {} } = assetData;
 
-        // If OpenAI is not available, use fallback immediately
-        if (!this.openai) {
-            console.log("Using fallback risk scoring (OpenAI not available)");
-            return this.fallbackRiskScoring(assetData);
+        // Use Gemini only
+        if (this.gemini) {
+            try {
+                console.log("🤖 Using Gemini for analysis...");
+                return await this.analyzeWithGemini(type, assetData);
+            } catch (error) {
+                console.warn("⚠️ Gemini analysis failed:", error.message);
+            }
         }
 
-        try {
-            // Create analysis prompt based on asset type
-            const prompt = this.buildAnalysisPrompt(type, assetData);
+        // Fallback to rule-based scoring
+        console.log("🔄 Using fallback risk scoring (no AI available)");
+        return this.fallbackRiskScoring(assetData);
+    }
 
-            const completion = await this.openai.chat.completions.create({
-                model: "gpt-4",
-                messages: [
-                    {
-                        role: "system",
-                        content:
-                            "You are a financial risk analyst specializing in receivables and cash flow assessment. Provide detailed risk analysis with scores from 0-100 where 0 is highest risk and 100 is lowest risk.",
-                    },
-                    {
-                        role: "user",
-                        content: prompt,
-                    },
-                ],
-                temperature: 0.3,
-            });
+    async analyzeWithGemini(type, assetData) {
+        const prompt = this.buildAnalysisPrompt(type, assetData);
 
-            const analysis = this.parseAIResponse(
-                completion.choices[0].message.content
-            );
+        const result = await this.geminiModel.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
 
-            return {
-                riskScore: analysis.riskScore,
-                confidence: analysis.confidence,
-                reasoning: analysis.reasoning,
-                factors: analysis.factors,
-                model: "gpt-4",
-                analyzedAt: new Date(),
-            };
-        } catch (error) {
-            console.error("AI Analysis failed:", error);
-            // Fallback to rule-based scoring
-            return this.fallbackRiskScoring(assetData);
-        }
+        const analysis = this.parseAIResponse(text);
+
+        return {
+            riskScore: analysis.riskScore,
+            confidence: analysis.confidence,
+            reasoning: analysis.reasoning,
+            factors: analysis.factors,
+            model: "gemini-2.5-flash",
+            analyzedAt: new Date(),
+        };
     }
 
     buildAnalysisPrompt(type, data) {
@@ -103,7 +92,7 @@ class AIService {
             basePrompt +
             (typeSpecificPrompts[type] || "") +
             `
-    
+
     Provide analysis in this JSON format:
     {
       "riskScore": 75,

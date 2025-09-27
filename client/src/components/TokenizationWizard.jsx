@@ -1451,12 +1451,12 @@ const ConfirmStep = ({
 
             // Create asset using Web3 integration (this calls both blockchain and backend)
             const tokenizationResult = await createAsset(assetData);
+            console.log(tokenizationResult);
 
             setResult({
                 assetId: tokenizationResult.assetId,
                 basketId: tokenizationResult.basketId,
-                transactionHash:
-                    tokenizationResult.blockchainResult.receipt.hash,
+                transactionHash: tokenizationResult.receipt.hash,
                 amount: currentFlow.offer.amount,
                 createdAt: new Date().toISOString(),
             });

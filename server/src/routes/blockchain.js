@@ -1,6 +1,7 @@
 const express = require("express");
 const { getWeb3Service } = require("../config/blockchain");
 const { ethers } = require("ethers");
+const BlockchainService = require('../services/BlockchainService');
 
 const router = express.Router();
 
@@ -17,6 +18,211 @@ const requireWeb3 = (req, res, next) => {
         });
     }
 };
+
+// Get transaction data for creating an asset
+router.post('/transaction-data/create-asset', async (req, res) => {
+    try {
+        const { assetData } = req.body;
+        
+        // Generate assetId and basketId if not provided
+        if (!assetData.assetId) {
+            assetData.assetId = ethers.utils.keccak256(
+                ethers.utils.defaultAbiCoder.encode(
+                    ["address", "uint256"],
+                    [assetData.originator, Date.now()]
+                )
+            );
+        }
+        
+        if (!assetData.basketId) {
+            assetData.basketId = ethers.utils.keccak256(
+                ethers.utils.defaultAbiCoder.encode(
+                    ["string", "uint256"],
+                    [assetData.assetType, Date.now()]
+                )
+            );
+        }
+
+        // Ensure documentHash is provided
+        if (!assetData.documentHash) {
+            assetData.documentHash = ethers.utils.keccak256(
+                ethers.utils.toUtf8Bytes(JSON.stringify(assetData))
+            );
+        }
+
+        const txData = BlockchainService.getCreateAssetTransactionData(assetData);
+        
+        res.json({
+            success: true,
+            transactionData: txData,
+            assetId: assetData.assetId,
+            basketId: assetData.basketId,
+            documentHash: assetData.documentHash
+        });
+    } catch (error) {
+        console.error('Failed to get create asset transaction data:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Get transaction data for recording investment
+router.post('/transaction-data/record-investment', async (req, res) => {
+    try {
+        const { assetId, investor, amount } = req.body;
+        
+        const txData = BlockchainService.getRecordInvestmentTransactionData(assetId, investor, amount);
+        
+        res.json({
+            success: true,
+            transactionData: txData
+        });
+    } catch (error) {
+        console.error('Failed to get record investment transaction data:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Get transaction data for releasing funds
+router.post('/transaction-data/release-funds', async (req, res) => {
+    try {
+        const { assetId, originator, amount } = req.body;
+        
+        const txData = BlockchainService.getReleaseFundsTransactionData(assetId, originator, amount);
+        
+        res.json({
+            success: true,
+            transactionData: txData
+        });
+    } catch (error) {
+        console.error('Failed to get release funds transaction data:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Get transaction data for marking asset as funded
+router.post('/transaction-data/mark-funded', async (req, res) => {
+    try {
+        const { assetId, unlockAmount } = req.body;
+        
+        const txData = BlockchainService.getMarkFundedTransactionData(assetId, unlockAmount);
+        
+        res.json({
+            success: true,
+            transactionData: txData
+        });
+    } catch (error) {
+        console.error('Failed to get mark funded transaction data:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Get transaction data for confirming payment
+router.post('/transaction-data/confirm-payment', async (req, res) => {
+    try {
+        const { assetId, amount } = req.body;
+        
+        const txData = BlockchainService.getConfirmPaymentTransactionData(assetId, amount);
+        
+        res.json({
+            success: true,
+            transactionData: txData
+        });
+    } catch (error) {
+        console.error('Failed to get confirm payment transaction data:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Get transaction data for token approval
+router.post('/transaction-data/approve-token', async (req, res) => {
+    try {
+        const { spender, amount } = req.body;
+        
+        const txData = BlockchainService.getApproveTokenTransactionData(spender, amount);
+        
+        res.json({
+            success: true,
+            transactionData: txData
+        });
+    } catch (error) {
+        console.error('Failed to get approve token transaction data:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Get transaction data for pool deposit
+router.post('/transaction-data/deposit-pool', async (req, res) => {
+    try {
+        const { amount } = req.body;
+        
+        const txData = BlockchainService.getDepositToPoolTransactionData(amount);
+        
+        res.json({
+            success: true,
+            transactionData: txData
+        });
+    } catch (error) {
+        console.error('Failed to get deposit pool transaction data:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Sync transaction result (called after user completes transaction)
+router.post('/sync-transaction', async (req, res) => {
+    try {
+        const { txHash, type, metadata } = req.body;
+        
+        // Get transaction receipt to verify it was mined
+        const receipt = await BlockchainService.getTransactionReceipt(txHash);
+        
+        if (!receipt) {
+            return res.status(400).json({
+                success: false,
+                error: 'Transaction not found or not mined yet'
+            });
+        }
+
+        // Events will be automatically processed by the event listeners
+        // Just confirm the transaction was successful
+        res.json({
+            success: true,
+            message: 'Transaction synced successfully',
+            receipt: {
+                transactionHash: receipt.transactionHash,
+                blockNumber: receipt.blockNumber,
+                status: receipt.status,
+                gasUsed: receipt.gasUsed.toString()
+            }
+        });
+    } catch (error) {
+        console.error('Failed to sync transaction:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
 
 // Get blockchain network info
 router.get("/network", requireWeb3, async (req, res) => {

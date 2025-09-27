@@ -7,7 +7,7 @@ const CONSTANTS = require("../config/constants");
 
 class BlockchainService {
     constructor() {
-        // Initialize provider for Kadena EVM testnet
+        // Initialize provider for Kadena EVM testnet (read-only)
         this.provider = new ethers.providers.JsonRpcProvider(
             CONSTANTS.NETWORK.RPC_URL
         );
@@ -31,46 +31,20 @@ class BlockchainService {
             this.provider
         );
 
-        // Create wallet if private key is available
-        if (process.env.PRIVATE_KEY) {
-            try {
-                this.wallet = new ethers.Wallet(
-                    process.env.PRIVATE_KEY,
-                    this.provider
-                );
-                
-                // Create write-enabled contracts
-                this.token = this.tokenContract.connect(this.wallet);
-                this.pool = this.poolContract.connect(this.wallet);
-                this.agent = this.agentContract.connect(this.wallet);
+        console.log(`✅ Read-only blockchain service initialized`);
+        console.log(`🔗 Connected to: ${CONSTANTS.NETWORK.RPC_URL}`);
+        console.log(`📄 Contracts:`);
+        console.log(`   Token: ${CONSTANTS.CONTRACTS.TOKEN}`);
+        console.log(`   Pool: ${CONSTANTS.CONTRACTS.POOL}`);
+        console.log(`   Agent: ${CONSTANTS.CONTRACTS.AGENT}`);
 
-                console.log(`✅ Blockchain wallet initialized: ${this.wallet.address}`);
-                console.log(`🔗 Connected to: ${CONSTANTS.NETWORK.RPC_URL}`);
-                console.log(`📄 Contracts:`);
-                console.log(`   Token: ${CONSTANTS.CONTRACTS.TOKEN}`);
-                console.log(`   Pool: ${CONSTANTS.CONTRACTS.POOL}`);
-                console.log(`   Agent: ${CONSTANTS.CONTRACTS.AGENT}`);
-            } catch (error) {
-                console.error("❌ Failed to initialize wallet:", error.message);
-                this.wallet = null;
-                this.token = null;
-                this.pool = null;
-                this.agent = null;
-            }
-        } else {
-            console.warn("⚠️  PRIVATE_KEY not set. Add to .env for real blockchain transactions.");
-            this.wallet = null;
-            this.token = null;
-            this.pool = null;
-            this.agent = null;
-        }
+        // Setup event listeners for database sync
+        this.setupEventListeners();
     }
 
-    async createAsset(assetData) {
-        if (!this.agent) {
-            throw new Error("❌ No wallet configured. Set PRIVATE_KEY in .env for blockchain transactions.");
-        }
-
+    // ===== TRANSACTION DATA PROVIDERS =====
+    
+    getCreateAssetTransactionData(assetData) {
         const {
             assetId,
             originator,
@@ -82,296 +56,309 @@ class BlockchainService {
             documentHash,
         } = assetData;
 
+        // Ensure assetId and basketId are properly formatted as bytes32
+        const formattedAssetId = assetId.startsWith('0x') ? assetId : `0x${assetId}`;
+        const formattedBasketId = basketId.startsWith('0x') ? basketId : `0x${basketId}`;
+        const formattedDocumentHash = documentHash ? (documentHash.startsWith('0x') ? documentHash : `0x${documentHash}`) : '0x0000000000000000000000000000000000000000000000000000000000000000';
+
+        const calldata = this.agentContract.interface.encodeFunctionData("createAsset", [
+            formattedAssetId,
+            originator,
+            ethers.utils.parseEther(faceAmount.toString()),
+            ethers.utils.parseEther(unlockable.toString()),
+            riskScore,
+            formattedBasketId,
+            assetType,
+            formattedDocumentHash
+        ]);
+
+        return {
+            to: CONSTANTS.CONTRACTS.AGENT,
+            data: calldata,
+            gasLimit: 500000,
+            value: "0"
+        };
+    }
+
+    getMarkFundedTransactionData(assetId, unlockAmount) {
+        const formattedAssetId = assetId.startsWith('0x') ? assetId : `0x${assetId}`;
+        
+        const calldata = this.agentContract.interface.encodeFunctionData("markFunded", [
+            formattedAssetId,
+            ethers.utils.parseEther(unlockAmount.toString())
+        ]);
+
+        return {
+            to: CONSTANTS.CONTRACTS.AGENT,
+            data: calldata,
+            gasLimit: 200000,
+            value: "0"
+        };
+    }
+
+    getReleaseFundsTransactionData(assetId, originator, amount) {
+        const formattedAssetId = assetId.startsWith('0x') ? assetId : `0x${assetId}`;
+        
+        const calldata = this.poolContract.interface.encodeFunctionData("releaseFunds", [
+            formattedAssetId,
+            originator,
+            ethers.utils.parseEther(amount.toString())
+        ]);
+
+        return {
+            to: CONSTANTS.CONTRACTS.POOL,
+            data: calldata,
+            gasLimit: 300000,
+            value: "0"
+        };
+    }
+
+    getRecordInvestmentTransactionData(assetId, investor, amount) {
+        const formattedAssetId = assetId.startsWith('0x') ? assetId : `0x${assetId}`;
+        
+        const calldata = this.agentContract.interface.encodeFunctionData("recordInvestment", [
+            formattedAssetId,
+            investor,
+            ethers.utils.parseEther(amount.toString())
+        ]);
+
+        return {
+            to: CONSTANTS.CONTRACTS.AGENT,
+            data: calldata,
+            gasLimit: 250000,
+            value: "0"
+        };
+    }
+
+    getConfirmPaymentTransactionData(assetId, amount) {
+        const formattedAssetId = assetId.startsWith('0x') ? assetId : `0x${assetId}`;
+        
+        const calldata = this.agentContract.interface.encodeFunctionData("confirmPayment", [
+            formattedAssetId,
+            ethers.utils.parseEther(amount.toString())
+        ]);
+
+        return {
+            to: CONSTANTS.CONTRACTS.AGENT,
+            data: calldata,
+            gasLimit: 250000,
+            value: "0"
+        };
+    }
+
+    getApproveTokenTransactionData(spender, amount) {
+        const calldata = this.tokenContract.interface.encodeFunctionData("approve", [
+            spender,
+            ethers.utils.parseEther(amount.toString())
+        ]);
+
+        return {
+            to: CONSTANTS.CONTRACTS.TOKEN,
+            data: calldata,
+            gasLimit: 100000,
+            value: "0"
+        };
+    }
+
+    getDepositToPoolTransactionData(amount) {
+        const calldata = this.poolContract.interface.encodeFunctionData("deposit", [
+            ethers.utils.parseEther(amount.toString())
+        ]);
+
+        return {
+            to: CONSTANTS.CONTRACTS.POOL,
+            data: calldata,
+            gasLimit: 200000,
+            value: "0"
+        };
+    }
+
+    // ===== EVENT LISTENERS FOR DATABASE SYNC =====
+
+    setupEventListeners() {
         try {
-            console.log(`🚀 Creating asset on Kadena blockchain...`);
-            console.log(`   Asset ID: ${assetId}`);
-            console.log(`   Originator: ${originator}`);
-            console.log(`   Face Amount: ${faceAmount} fUSD`);
-            console.log(`   Risk Score: ${riskScore}`);
+            // Listen for AssetCreated events
+            this.agentContract.on("AssetCreated", async (assetId, originator, faceAmount, unlockable, riskScore, basketId, assetType, documentHash, event) => {
+                console.log(`🎉 AssetCreated event detected:`, {
+                    assetId,
+                    originator,
+                    faceAmount: ethers.utils.formatEther(faceAmount),
+                    assetType
+                });
 
-            // Prepare transaction
-            const tx = await this.agent.createAsset(
-                assetId,
-                originator,
-                ethers.utils.parseEther(faceAmount.toString()),
-                ethers.utils.parseEther(unlockable.toString()),
-                riskScore,
-                basketId,
-                assetType,
-                documentHash,
-                {
-                    gasLimit: 500000 // Set gas limit for Kadena
+                try {
+                    // Import Asset model here to avoid circular dependencies
+                    const Asset = require('../models/Asset');
+                    
+                    // Create or update asset in database
+                    await Asset.findOneAndUpdate(
+                        { assetId },
+                        {
+                            assetId,
+                            originatorAddress: originator,
+                            faceAmount: parseFloat(ethers.utils.formatEther(faceAmount)),
+                            unlockable: parseFloat(ethers.utils.formatEther(unlockable)),
+                            riskScore,
+                            basketId,
+                            assetType,
+                            documentHash,
+                            status: 'created',
+                            createdAt: new Date(),
+                            blockchainTxHash: event.transactionHash,
+                            blockNumber: event.blockNumber
+                        },
+                        { upsert: true, new: true }
+                    );
+                    
+                    console.log(`✅ Asset ${assetId} synced to database`);
+                } catch (error) {
+                    console.error(`❌ Failed to sync AssetCreated event:`, error);
                 }
-            );
+            });
 
-            console.log(`⏳ Transaction sent: ${tx.hash}`);
-            console.log(`🔍 Explorer: ${CONSTANTS.NETWORK.EXPLORER_URL}/tx/${tx.hash}`);
+            // Listen for AssetFunded events
+            this.agentContract.on("AssetFunded", async (assetId, unlockAmount, event) => {
+                console.log(`💰 AssetFunded event detected:`, {
+                    assetId,
+                    unlockAmount: ethers.utils.formatEther(unlockAmount)
+                });
 
-            // Wait for confirmation
-            const receipt = await tx.wait();
-            
-            console.log(`✅ Asset created successfully!`);
-            console.log(`   Block: ${receipt.blockNumber}`);
-            console.log(`   Gas Used: ${receipt.gasUsed.toString()}`);
+                try {
+                    const Asset = require('../models/Asset');
+                    
+                    await Asset.updateOne(
+                        { assetId },
+                        {
+                            $set: {
+                                status: 'funded',
+                                fundedAt: new Date(),
+                                unlockable: parseFloat(ethers.utils.formatEther(unlockAmount))
+                            }
+                        }
+                    );
+                    
+                    console.log(`✅ Asset ${assetId} marked as funded in database`);
+                } catch (error) {
+                    console.error(`❌ Failed to sync AssetFunded event:`, error);
+                }
+            });
 
-            return {
-                hash: tx.hash,
-                blockNumber: receipt.blockNumber,
-                gasUsed: receipt.gasUsed.toString(),
-                from: tx.from,
-                to: tx.to,
-                status: receipt.status
-            };
+            // Listen for InvestmentRecorded events
+            this.agentContract.on("InvestmentRecorded", async (assetId, investor, amount, event) => {
+                console.log(`📈 InvestmentRecorded event detected:`, {
+                    assetId,
+                    investor,
+                    amount: ethers.utils.formatEther(amount)
+                });
+
+                try {
+                    const Investment = require('../models/Investment');
+                    
+                    // Create investment record if it doesn't exist
+                    const investmentData = {
+                        investmentId: ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(
+                            ["bytes32", "address", "uint256"],
+                            [assetId, investor, amount]
+                        )),
+                        investorAddress: investor,
+                        assetId,
+                        amount: parseFloat(ethers.utils.formatEther(amount)),
+                        status: 'active',
+                        investedAt: new Date(),
+                        blockchainTxHash: event.transactionHash,
+                        blockNumber: event.blockNumber
+                    };
+
+                    await Investment.findOneAndUpdate(
+                        { assetId, investorAddress: investor },
+                        { $inc: { amount: investmentData.amount } },
+                        { upsert: true, new: true, setDefaultsOnInsert: true }
+                    );
+                    
+                    console.log(`✅ Investment for ${assetId} synced to database`);
+                } catch (error) {
+                    console.error(`❌ Failed to sync InvestmentRecorded event:`, error);
+                }
+            });
+
+            // Listen for PaymentConfirmed events
+            this.agentContract.on("PaymentConfirmed", async (assetId, amount, event) => {
+                console.log(`💳 PaymentConfirmed event detected:`, {
+                    assetId,
+                    amount: ethers.utils.formatEther(amount)
+                });
+
+                try {
+                    const Asset = require('../models/Asset');
+                    
+                    await Asset.updateOne(
+                        { assetId },
+                        {
+                            $inc: { paidAmount: parseFloat(ethers.utils.formatEther(amount)) },
+                            $set: { lastPaymentAt: new Date() }
+                        }
+                    );
+
+                    // Check if fully paid
+                    const asset = await Asset.findOne({ assetId });
+                    if (asset && asset.paidAmount >= asset.faceAmount) {
+                        await Asset.updateOne(
+                            { assetId },
+                            {
+                                $set: {
+                                    status: 'paid',
+                                    paid: true,
+                                    paidAt: new Date()
+                                }
+                            }
+                        );
+                    }
+                    
+                    console.log(`✅ Payment for ${assetId} synced to database`);
+                } catch (error) {
+                    console.error(`❌ Failed to sync PaymentConfirmed event:`, error);
+                }
+            });
+
+            // Listen for FundsReleased events from MainPool
+            this.poolContract.on("FundsReleased", async (assetId, originator, amount, event) => {
+                console.log(`🚀 FundsReleased event detected:`, {
+                    assetId,
+                    originator,
+                    amount: ethers.utils.formatEther(amount)
+                });
+
+                try {
+                    const Transaction = require('../models/Transaction');
+                    
+                    // Create transaction record
+                    await Transaction.create({
+                        transactionId: ethers.utils.keccak256(event.transactionHash),
+                        type: 'fund_release',
+                        txHash: event.transactionHash,
+                        from: CONSTANTS.CONTRACTS.POOL,
+                        to: originator,
+                        amount: parseFloat(ethers.utils.formatEther(amount)),
+                        assetId,
+                        status: 'confirmed',
+                        confirmedAt: new Date(),
+                        blockNumber: event.blockNumber
+                    });
+                    
+                    console.log(`✅ Fund release for ${assetId} synced to database`);
+                } catch (error) {
+                    console.error(`❌ Failed to sync FundsReleased event:`, error);
+                }
+            });
+
+            console.log(`✅ Event listeners setup complete`);
         } catch (error) {
-            console.error("❌ Blockchain createAsset failed:", error);
-            
-            // Parse error message for better debugging
-            if (error.reason) {
-                console.error(`   Reason: ${error.reason}`);
-            }
-            if (error.code) {
-                console.error(`   Code: ${error.code}`);
-            }
-            
-            throw new Error(`Blockchain transaction failed: ${error.reason || error.message}`);
+            console.error(`❌ Failed to setup event listeners:`, error);
         }
     }
 
-    async markFunded(assetId, unlockAmount) {
-        if (!this.agent) {
-            throw new Error("❌ No wallet configured. Set PRIVATE_KEY in .env for blockchain transactions.");
-        }
+    // ===== READ-ONLY OPERATIONS =====
 
-        try {
-            console.log(`🚀 Marking asset as funded on blockchain...`);
-            console.log(`   Asset ID: ${assetId}`);
-            console.log(`   Unlock Amount: ${unlockAmount} fUSD`);
-
-            const tx = await this.agent.markFunded(
-                assetId,
-                ethers.utils.parseEther(unlockAmount.toString()),
-                {
-                    gasLimit: 200000
-                }
-            );
-
-            console.log(`⏳ Transaction sent: ${tx.hash}`);
-            const receipt = await tx.wait();
-            
-            console.log(`✅ Asset marked as funded!`);
-            console.log(`   Block: ${receipt.blockNumber}`);
-
-            return {
-                hash: tx.hash,
-                blockNumber: receipt.blockNumber,
-                gasUsed: receipt.gasUsed.toString()
-            };
-        } catch (error) {
-            console.error("❌ Blockchain markFunded failed:", error);
-            throw new Error(`Mark funded failed: ${error.reason || error.message}`);
-        }
-    }
-
-    async releaseFunds(assetId, originator, amount) {
-        if (!this.pool) {
-            throw new Error("❌ No wallet configured. Set PRIVATE_KEY in .env for blockchain transactions.");
-        }
-
-        try {
-            console.log(`🚀 Releasing funds from pool...`);
-            console.log(`   Asset ID: ${assetId}`);
-            console.log(`   To: ${originator}`);
-            console.log(`   Amount: ${amount} fUSD`);
-
-            // Check pool balance first
-            const poolBalance = await this.getPoolBalance();
-            console.log(`   Pool Balance: ${poolBalance} fUSD`);
-
-            if (parseFloat(poolBalance) < amount) {
-                throw new Error(`Insufficient pool balance. Available: ${poolBalance}, Required: ${amount}`);
-            }
-
-            const tx = await this.pool.releaseFunds(
-                assetId,
-                originator,
-                ethers.utils.parseEther(amount.toString()),
-                {
-                    gasLimit: 300000
-                }
-            );
-
-            console.log(`⏳ Transaction sent: ${tx.hash}`);
-            const receipt = await tx.wait();
-            
-            console.log(`✅ Funds released successfully!`);
-            console.log(`   Block: ${receipt.blockNumber}`);
-
-            return {
-                hash: tx.hash,
-                blockNumber: receipt.blockNumber,
-                gasUsed: receipt.gasUsed.toString()
-            };
-        } catch (error) {
-            console.error("❌ Blockchain releaseFunds failed:", error);
-            throw new Error(`Release funds failed: ${error.reason || error.message}`);
-        }
-    }
-
-    async recordInvestment(assetId, investor, amount) {
-        if (!this.agent) {
-            throw new Error("❌ No wallet configured. Set PRIVATE_KEY in .env for blockchain transactions.");
-        }
-
-        try {
-            console.log(`🚀 Recording investment on blockchain...`);
-            console.log(`   Asset ID: ${assetId}`);
-            console.log(`   Investor: ${investor}`);
-            console.log(`   Amount: ${amount} fUSD`);
-
-            const tx = await this.agent.recordInvestment(
-                assetId,
-                investor,
-                ethers.utils.parseEther(amount.toString()),
-                {
-                    gasLimit: 250000
-                }
-            );
-
-            console.log(`⏳ Transaction sent: ${tx.hash}`);
-            const receipt = await tx.wait();
-            
-            console.log(`✅ Investment recorded successfully!`);
-            console.log(`   Block: ${receipt.blockNumber}`);
-
-            return {
-                hash: tx.hash,
-                blockNumber: receipt.blockNumber,
-                gasUsed: receipt.gasUsed.toString()
-            };
-        } catch (error) {
-            console.error("❌ Blockchain recordInvestment failed:", error);
-            throw new Error(`Record investment failed: ${error.reason || error.message}`);
-        }
-    }
-
-    async confirmPayment(assetId, amount) {
-        if (!this.agent) {
-            throw new Error("❌ No wallet configured. Set PRIVATE_KEY in .env for blockchain transactions.");
-        }
-
-        try {
-            console.log(`🚀 Confirming payment on blockchain...`);
-            console.log(`   Asset ID: ${assetId}`);
-            console.log(`   Amount: ${amount} fUSD`);
-
-            const tx = await this.agent.confirmPayment(
-                assetId,
-                ethers.utils.parseEther(amount.toString()),
-                {
-                    gasLimit: 250000
-                }
-            );
-
-            console.log(`⏳ Transaction sent: ${tx.hash}`);
-            const receipt = await tx.wait();
-            
-            console.log(`✅ Payment confirmed successfully!`);
-            console.log(`   Block: ${receipt.blockNumber}`);
-
-            return {
-                hash: tx.hash,
-                blockNumber: receipt.blockNumber,
-                gasUsed: receipt.gasUsed.toString()
-            };
-        } catch (error) {
-            console.error("❌ Blockchain confirmPayment failed:", error);
-            throw new Error(`Confirm payment failed: ${error.reason || error.message}`);
-        }
-    }
-
-    // Token operations
-    async mintTokens(to, amount) {
-        if (!this.token) {
-            throw new Error("❌ No wallet configured. Set PRIVATE_KEY in .env for blockchain transactions.");
-        }
-
-        try {
-            console.log(`🚀 Minting tokens...`);
-            console.log(`   To: ${to}`);
-            console.log(`   Amount: ${amount} fUSD`);
-
-            const tx = await this.token.mint(
-                to,
-                ethers.utils.parseEther(amount.toString()),
-                {
-                    gasLimit: 200000
-                }
-            );
-
-            console.log(`⏳ Transaction sent: ${tx.hash}`);
-            const receipt = await tx.wait();
-            
-            console.log(`✅ Tokens minted successfully!`);
-
-            return {
-                hash: tx.hash,
-                blockNumber: receipt.blockNumber,
-                gasUsed: receipt.gasUsed.toString()
-            };
-        } catch (error) {
-            console.error("❌ Token minting failed:", error);
-            throw new Error(`Token minting failed: ${error.reason || error.message}`);
-        }
-    }
-
-    async depositToPool(amount) {
-        if (!this.pool) {
-            throw new Error("❌ No wallet configured. Set PRIVATE_KEY in .env for blockchain transactions.");
-        }
-
-        try {
-            console.log(`🚀 Depositing to pool...`);
-            console.log(`   Amount: ${amount} fUSD`);
-
-            // First approve the pool to spend tokens
-            const approveTx = await this.token.approve(
-                CONSTANTS.CONTRACTS.POOL,
-                ethers.utils.parseEther(amount.toString()),
-                {
-                    gasLimit: 100000
-                }
-            );
-
-            console.log(`⏳ Approval sent: ${approveTx.hash}`);
-            await approveTx.wait();
-            console.log(`✅ Approval confirmed`);
-
-            // Then deposit to pool
-            const depositTx = await this.pool.deposit(
-                ethers.utils.parseEther(amount.toString()),
-                {
-                    gasLimit: 200000
-                }
-            );
-
-            console.log(`⏳ Deposit sent: ${depositTx.hash}`);
-            const receipt = await depositTx.wait();
-            
-            console.log(`✅ Deposited to pool successfully!`);
-
-            return {
-                approveHash: approveTx.hash,
-                depositHash: depositTx.hash,
-                blockNumber: receipt.blockNumber,
-                gasUsed: receipt.gasUsed.toString()
-            };
-        } catch (error) {
-            console.error("❌ Pool deposit failed:", error);
-            throw new Error(`Pool deposit failed: ${error.reason || error.message}`);
-        }
-    }
-
-    // Read-only operations
     async getPoolBalance() {
         try {
             const balance = await this.poolContract.getPoolBalance();
@@ -444,13 +431,10 @@ class BlockchainService {
         }
     }
 
-    // Utility methods
-    isDemoMode() {
-        return !this.wallet;
-    }
+    // ===== UTILITY METHODS =====
 
-    getWalletAddress() {
-        return this.wallet ? this.wallet.address : null;
+    isDemoMode() {
+        return true; // Always in user-tx mode now
     }
 
     getContractAddresses() {
@@ -477,6 +461,28 @@ class BlockchainService {
             console.error("Failed to get block number:", error);
             return 0;
         }
+    }
+
+    // ===== LEGACY METHODS (throw errors to guide migration) =====
+
+    async createAsset() {
+        throw new Error("Use getCreateAssetTransactionData() and let user sign the transaction");
+    }
+
+    async markFunded() {
+        throw new Error("Use getMarkFundedTransactionData() and let user sign the transaction");
+    }
+
+    async releaseFunds() {
+        throw new Error("Use getReleaseFundsTransactionData() and let user sign the transaction");
+    }
+
+    async recordInvestment() {
+        throw new Error("Use getRecordInvestmentTransactionData() and let user sign the transaction");
+    }
+
+    async confirmPayment() {
+        throw new Error("Use getConfirmPaymentTransactionData() and let user sign the transaction");
     }
 }
 

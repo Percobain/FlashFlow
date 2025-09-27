@@ -1,21 +1,21 @@
 const { ethers } = require("ethers");
-const OpenAI = require("openai");
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
-// Lazy initialization of OpenAI client
-let openai = null;
+// Lazy initialization of Gemini client
+let gemini = null;
+let geminiModel = null;
 
-function getOpenAIClient() {
-    if (!openai) {
-        if (!process.env.OPENAI_API_KEY) {
+function getGeminiClient() {
+    if (!gemini) {
+        if (!process.env.GEMINI_API_KEY) {
             throw new Error(
-                "OPENAI_API_KEY environment variable is required for AI-enhanced analysis"
+                "GEMINI_API_KEY environment variable is required for AI analysis"
             );
         }
-        openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY,
-        });
+        gemini = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        geminiModel = gemini.getGenerativeModel({ model: "gemini-2.5-flash" });
     }
-    return openai;
+    return { gemini, geminiModel };
 }
 
 class AssetAnalysisService {
@@ -134,7 +134,7 @@ class AssetAnalysisService {
                 `🤖 Starting AI-enhanced analysis for ${type} asset...`
             );
 
-            // Step 1: Use OpenAI to validate and enhance the input data
+            // Step 1: Use AI to validate and enhance the input data
             const enhancedData = await this.enhanceDataWithAI(type, assetData);
 
             // Step 2: Use deterministic risk analysis on enhanced data
@@ -201,64 +201,104 @@ class AssetAnalysisService {
         }
     }
 
-    // AI Enhancement Methods
+    // AI Enhancement Methods - Gemini only
     async enhanceDataWithAI(type, rawData) {
-        try {
-            const prompt = this.createEnhancementPrompt(type, rawData);
-
-            const response = await openai.chat.completions.create({
-                model: "gpt-4",
-                messages: [
-                    {
-                        role: "system",
-                        content:
-                            "You are a financial risk analysis expert. Your job is to validate, clean, and enhance asset data for risk assessment. Always return valid JSON that matches the expected schema.",
-                    },
-                    {
-                        role: "user",
-                        content: prompt,
-                    },
-                ],
-                temperature: 0.1, // Low temperature for consistency
-                max_tokens: 2000,
-            });
-
-            const aiResponse = response.choices[0].message.content;
-
-            // Parse the AI response
-            let enhancedData;
+        // Use Gemini only
+        if (process.env.GEMINI_API_KEY) {
             try {
-                // Extract JSON from the response (in case AI adds explanation text)
-                const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    enhancedData = JSON.parse(jsonMatch[0]);
-                } else {
-                    enhancedData = JSON.parse(aiResponse);
-                }
-            } catch (parseError) {
-                console.warn(
-                    "⚠️ AI response parsing failed, using original data:",
-                    parseError.message
-                );
-                return rawData;
+                console.log("🤖 Using Gemini for data enhancement...");
+                return await this.enhanceDataWithGemini(type, rawData);
+            } catch (error) {
+                console.warn("⚠️ Gemini enhancement failed:", error.message);
             }
+        }
 
-            // Validate the enhanced data has required fields
-            const validatedData = this.validateEnhancedData(
-                type,
-                enhancedData,
-                rawData
-            );
+        // Final fallback to original data
+        console.log("🔄 Using original data (no AI enhancement available)");
+        return rawData;
+    }
 
-            console.log("✅ Data successfully enhanced by AI");
-            return validatedData;
-        } catch (error) {
+    async enhanceDataWithGemini(type, rawData) {
+        const prompt = this.createEnhancementPrompt(type, rawData);
+
+        const { geminiModel } = getGeminiClient();
+        const result = await geminiModel.generateContent(prompt);
+        const response = await result.response;
+        const aiResponse = response.text();
+
+        // Parse the AI response
+        let enhancedData;
+        try {
+            // Extract JSON from the response (in case AI adds explanation text)
+            const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                enhancedData = JSON.parse(jsonMatch[0]);
+            } else {
+                enhancedData = JSON.parse(aiResponse);
+            }
+        } catch (parseError) {
             console.warn(
-                "⚠️ AI enhancement failed, using original data:",
-                error.message
+                "⚠️ Gemini response parsing failed, using original data:",
+                parseError.message
             );
             return rawData;
         }
+
+        // Validate the enhanced data has required fields
+        const validatedData = this.validateEnhancedData(
+            type,
+            enhancedData,
+            rawData
+        );
+
+        console.log("✅ Data successfully enhanced by Gemini");
+        return validatedData;
+    }
+
+    async generateAISummary(type, data, analysis) {
+        // Use Gemini only
+        if (process.env.GEMINI_API_KEY) {
+            try {
+                console.log("🤖 Using Gemini for summary generation...");
+                return await this.generateSummaryWithGemini(type, data, analysis);
+            } catch (error) {
+                console.warn("⚠️ Gemini summary generation failed:", error.message);
+            }
+        }
+
+        // Final fallback
+        return `Risk analysis completed for ${type} asset with a score of ${
+            analysis.score
+        }/100. Recommended advance rate is ${(
+            analysis.recommendedAdvance * 100
+        ).toFixed(1)}% based on the assessed risk factors.`;
+    }
+
+    async generateSummaryWithGemini(type, data, analysis) {
+        const prompt = `
+Generate a concise, professional risk analysis summary for this ${type} asset:
+
+Asset Data:
+${JSON.stringify(data, null, 2)}
+
+Risk Analysis Results:
+- Risk Score: ${analysis.score}/100
+- Confidence: ${analysis.confidence}%
+- Estimated Value: $${analysis.estimatedValue?.toLocaleString()}
+- Recommended Advance: ${(analysis.recommendedAdvance * 100).toFixed(1)}%
+- Projected ROI: ${analysis.projectedROI}%
+
+Provide a 3-4 sentence executive summary that explains:
+1. The key risk factors identified
+2. Why this risk score was assigned
+3. The recommended action for investors
+
+Keep it professional and actionable.`;
+
+        const { geminiModel } = getGeminiClient();
+        const result = await geminiModel.generateContent(prompt);
+        const response = await result.response;
+        return response.text().trim();
     }
 
     createEnhancementPrompt(type, data) {
@@ -432,341 +472,6 @@ Return the enhanced data in the most appropriate format for ${type} assets.`
         }
 
         return validated;
-    }
-
-    async generateAISummary(type, data, analysis) {
-        try {
-            const prompt = `
-Generate a concise, professional risk analysis summary for this ${type} asset:
-
-Asset Data:
-${JSON.stringify(data, null, 2)}
-
-Risk Analysis Results:
-- Risk Score: ${analysis.score}/100
-- Confidence: ${analysis.confidence}%
-- Estimated Value: $${analysis.estimatedValue?.toLocaleString()}
-- Recommended Advance: ${(analysis.recommendedAdvance * 100).toFixed(1)}%
-- Projected ROI: ${analysis.projectedROI}%
-
-Provide a 3-4 sentence executive summary that explains:
-1. The key risk factors identified
-2. Why this risk score was assigned
-3. The recommended action for investors
-
-Keep it professional and actionable.`;
-
-            const response = await openai.chat.completions.create({
-                model: "gpt-4",
-                messages: [
-                    {
-                        role: "system",
-                        content:
-                            "You are a senior financial risk analyst providing executive summaries for investment decisions.",
-                    },
-                    {
-                        role: "user",
-                        content: prompt,
-                    },
-                ],
-                temperature: 0.3,
-                max_tokens: 300,
-            });
-
-            return response.choices[0].message.content.trim();
-        } catch (error) {
-            console.warn("⚠️ AI summary generation failed:", error.message);
-            return `Risk analysis completed for ${type} asset with a score of ${
-                analysis.score
-            }/100. Recommended advance rate is ${(
-                analysis.recommendedAdvance * 100
-            ).toFixed(1)}% based on the assessed risk factors.`;
-        }
-    }
-
-    // AI Enhancement Methods
-    async enhanceDataWithAI(type, rawData) {
-        try {
-            const prompt = this.createEnhancementPrompt(type, rawData);
-
-            const client = getOpenAIClient();
-            const response = await client.chat.completions.create({
-                model: "gpt-4",
-                messages: [
-                    {
-                        role: "system",
-                        content:
-                            "You are a financial risk analysis expert. Your job is to validate, clean, and enhance asset data for risk assessment. Always return valid JSON that matches the expected schema.",
-                    },
-                    {
-                        role: "user",
-                        content: prompt,
-                    },
-                ],
-                temperature: 0.1, // Low temperature for consistency
-                max_tokens: 2000,
-            });
-
-            const aiResponse = response.choices[0].message.content;
-
-            // Parse the AI response
-            let enhancedData;
-            try {
-                // Extract JSON from the response (in case AI adds explanation text)
-                const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                    enhancedData = JSON.parse(jsonMatch[0]);
-                } else {
-                    enhancedData = JSON.parse(aiResponse);
-                }
-            } catch (parseError) {
-                console.warn(
-                    "⚠️ AI response parsing failed, using original data:",
-                    parseError.message
-                );
-                return rawData;
-            }
-
-            // Validate the enhanced data has required fields
-            const validatedData = this.validateEnhancedData(
-                type,
-                enhancedData,
-                rawData
-            );
-
-            console.log("✅ Data successfully enhanced by AI");
-            return validatedData;
-        } catch (error) {
-            console.warn(
-                "⚠️ AI enhancement failed, using original data:",
-                error.message
-            );
-            return rawData;
-        }
-    }
-
-    createEnhancementPrompt(type, data) {
-        const basePrompt = `
-Analyze and enhance the following ${type} asset data for risk assessment. 
-
-Original Data:
-${JSON.stringify(data, null, 2)}
-
-Please:
-1. Validate all numerical values and fix any inconsistencies
-2. Fill in missing fields with reasonable estimates based on industry standards
-3. Identify and flag any potential red flags
-4. Ensure all required fields are present and properly formatted
-5. Add calculated fields that would be useful for risk analysis
-
-Return ONLY a JSON object with the enhanced data following this schema:`;
-
-        switch (type) {
-            case "invoice":
-                return (
-                    basePrompt +
-                    `
-{
-  "invoice_id": "string",
-  "total_amount": number,
-  "vendor": {
-    "company_name": "string",
-    "years_in_business": number,
-    "address": "string"
-  },
-  "client": {
-    "company_name": "string",
-    "country": "string",
-    "payment_history": {
-      "total_invoices": number,
-      "on_time_payments": number
-    }
-  },
-  "payment_terms": "string",
-  "late_fee_percentage": number,
-  "partial_payments_allowed": boolean,
-  "insurance_coverage": boolean,
-  "red_flags": ["array of strings"],
-  "line_items": [{"quantity": number, "unit_price": number, "total": number}]
-}`
-                );
-
-            case "saas":
-                return (
-                    basePrompt +
-                    `
-{
-  "totalMRR": number,
-  "subscriptions": [{"monthlyRevenue": number, "churnRate": number}],
-  "yearlyGrowth": number,
-  "retention": number,
-  "customerAcquisitionCost": number,
-  "lifetimeValue": number
-}`
-                );
-
-            case "creator":
-                return (
-                    basePrompt +
-                    `
-{
-  "totalMonthlyRevenue": number,
-  "platforms": [{"name": "string", "monthlyRevenue": number, "engagement": number, "followers": number}],
-  "audienceGrowth": number,
-  "contentCategories": ["array"],
-  "brandPartnerships": number
-}`
-                );
-
-            case "rental":
-                return (
-                    basePrompt +
-                    `
-{
-  "totalMonthlyIncome": number,
-  "properties": [{"monthlyRent": number, "occupancyRate": number, "propertyType": "string", "location": "string"}],
-  "occupancy": number,
-  "propertyAppreciation": number,
-  "maintenanceCosts": number
-}`
-                );
-
-            case "luxury":
-                return (
-                    basePrompt +
-                    `
-{
-  "totalValue": number,
-  "assets": [{"currentValue": number, "utilizationRate": number, "appreciationRate": number, "assetType": "string"}],
-  "averageUtilization": number,
-  "insuranceCoverage": "string",
-  "maintenanceCosts": number
-}`
-                );
-
-            default:
-                return (
-                    basePrompt +
-                    `
-Return the enhanced data in the most appropriate format for ${type} assets.`
-                );
-        }
-    }
-
-    validateEnhancedData(type, enhancedData, originalData) {
-        // Ensure critical fields exist, fallback to original data if missing
-        const validated = { ...enhancedData };
-
-        switch (type) {
-            case "invoice":
-                if (!validated.total_amount && originalData.total_amount) {
-                    validated.total_amount = originalData.total_amount;
-                }
-                if (!validated.vendor && originalData.vendor) {
-                    validated.vendor = originalData.vendor;
-                }
-                if (!validated.client && originalData.client) {
-                    validated.client = originalData.client;
-                }
-                break;
-
-            case "saas":
-                if (!validated.totalMRR && originalData.totalMRR) {
-                    validated.totalMRR = originalData.totalMRR;
-                }
-                if (!validated.subscriptions && originalData.subscriptions) {
-                    validated.subscriptions = originalData.subscriptions;
-                }
-                break;
-
-            case "creator":
-                if (
-                    !validated.totalMonthlyRevenue &&
-                    originalData.totalMonthlyRevenue
-                ) {
-                    validated.totalMonthlyRevenue =
-                        originalData.totalMonthlyRevenue;
-                }
-                if (!validated.platforms && originalData.platforms) {
-                    validated.platforms = originalData.platforms;
-                }
-                break;
-
-            case "rental":
-                if (
-                    !validated.totalMonthlyIncome &&
-                    originalData.totalMonthlyIncome
-                ) {
-                    validated.totalMonthlyIncome =
-                        originalData.totalMonthlyIncome;
-                }
-                if (!validated.properties && originalData.properties) {
-                    validated.properties = originalData.properties;
-                }
-                break;
-
-            case "luxury":
-                if (!validated.totalValue && originalData.totalValue) {
-                    validated.totalValue = originalData.totalValue;
-                }
-                if (!validated.assets && originalData.assets) {
-                    validated.assets = originalData.assets;
-                }
-                break;
-        }
-
-        return validated;
-    }
-
-    async generateAISummary(type, data, analysis) {
-        try {
-            const prompt = `
-Generate a concise, professional risk analysis summary for this ${type} asset:
-
-Asset Data:
-${JSON.stringify(data, null, 2)}
-
-Risk Analysis Results:
-- Risk Score: ${analysis.score}/100
-- Confidence: ${analysis.confidence}%
-- Estimated Value: $${analysis.estimatedValue?.toLocaleString()}
-- Recommended Advance: ${(analysis.recommendedAdvance * 100).toFixed(1)}%
-- Projected ROI: ${analysis.projectedROI}%
-
-Provide a 3-4 sentence executive summary that explains:
-1. The key risk factors identified
-2. Why this risk score was assigned
-3. The recommended action for investors
-
-Keep it professional and actionable.`;
-
-            const client = getOpenAIClient();
-            const response = await client.chat.completions.create({
-                model: "gpt-4",
-                messages: [
-                    {
-                        role: "system",
-                        content:
-                            "You are a senior financial risk analyst providing executive summaries for investment decisions.",
-                    },
-                    {
-                        role: "user",
-                        content: prompt,
-                    },
-                ],
-                temperature: 0.3,
-                max_tokens: 300,
-            });
-
-            return response.choices[0].message.content.trim();
-        } catch (error) {
-            console.warn("⚠️ AI summary generation failed:", error.message);
-            return `Risk analysis completed for ${type} asset with a score of ${
-                analysis.score
-            }/100. Recommended advance rate is ${(
-                analysis.recommendedAdvance * 100
-            ).toFixed(1)}% based on the assessed risk factors.`;
-        }
     }
 
     // Utility functions for deterministic analysis
