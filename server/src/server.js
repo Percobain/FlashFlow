@@ -2,8 +2,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
-const morgan = require('morgan');
-const helmet = require('helmet');
+const morgan = require("morgan");
+const helmet = require("helmet");
 
 // Load environment variables
 dotenv.config();
@@ -19,7 +19,7 @@ app.use(
         credentials: true,
     })
 );
-app.use(morgan('combined'));
+app.use(morgan("combined"));
 app.use(helmet());
 
 // Database connection
@@ -37,12 +37,12 @@ const basketRoutes = require("./routes/baskets");
 const paymentRoutes = require("./routes/payments");
 const userRoutes = require("./routes/users");
 const adminRoutes = require("./routes/admin");
-const  blockchainRoutes = require("./routes/blockchain")
-const storageRoutes = require('./routes/storage');
+const blockchainRoutes = require("./routes/blockchain");
+const storageRoutes = require("./routes/storage");
 
 // Import services
-const AssetAnalysisService = require('./services/AssetAnalysisService');
-const UserService = require('./services/UserService');
+const AssetAnalysisService = require("./services/AssetAnalysisService");
+const UserService = require("./services/UserService");
 
 app.use("/api/assets", assetRoutes);
 app.use("/api/investments", investmentRoutes);
@@ -50,18 +50,112 @@ app.use("/api/baskets", basketRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/blockchain", blockchainRoutes)
-app.use('/api/storage', storageRoutes);
+app.use("/api/blockchain", blockchainRoutes);
+app.use("/api/storage", storageRoutes);
 
-// Asset analysis endpoint
-app.post('/api/analyze-asset', async (req, res) => {
-  try {
-    const analysis = await AssetAnalysisService.analyzeAssetData(req.body);
-    res.json(analysis);
-  } catch (error) {
-    console.error('Asset analysis failed:', error);
-    res.status(500).json({ error: 'Analysis failed' });
-  }
+// Asset analysis endpoints
+app.post("/api/analyze-asset", async (req, res) => {
+    try {
+        const analysis = await AssetAnalysisService.analyzeAssetData(req.body);
+        res.json({
+            success: true,
+            analysis,
+            timestamp: new Date().toISOString(),
+        });
+    } catch (error) {
+        console.error("Asset analysis failed:", error);
+        res.status(500).json({
+            success: false,
+            error: "Analysis failed",
+            details:
+                process.env.NODE_ENV === "development"
+                    ? error.message
+                    : undefined,
+        });
+    }
+});
+
+// AI-Enhanced analysis endpoint (explicit)
+app.post("/api/analyze-asset-ai", async (req, res) => {
+    try {
+        console.log("🤖 AI-Enhanced analysis requested");
+        const analysis = await AssetAnalysisService.analyzeAssetData(req.body);
+        res.json({
+            success: true,
+            analysis,
+            aiEnhanced: true,
+            timestamp: new Date().toISOString(),
+        });
+    } catch (error) {
+        console.error("AI-Enhanced asset analysis failed:", error);
+        res.status(500).json({
+            success: false,
+            error: "AI-Enhanced analysis failed",
+            details:
+                process.env.NODE_ENV === "development"
+                    ? error.message
+                    : undefined,
+        });
+    }
+});
+
+// Direct deterministic risk analysis endpoint
+app.post("/api/risk-analysis/:type", async (req, res) => {
+    try {
+        const { type } = req.params;
+        const data = req.body;
+
+        const validTypes = ["invoice", "saas", "creator", "rental", "luxury"];
+        if (!validTypes.includes(type)) {
+            return res.status(400).json({ error: "Invalid asset type" });
+        }
+
+        const analysis =
+            await AssetAnalysisService.performDeterministicRiskAnalysis(
+                type,
+                data
+            );
+        res.json({
+            success: true,
+            type,
+            analysis,
+        });
+    } catch (error) {
+        console.error("Risk analysis failed:", error);
+        res.status(500).json({
+            success: false,
+            error: "Risk analysis failed",
+            details:
+                process.env.NODE_ENV === "development"
+                    ? error.message
+                    : undefined,
+        });
+    }
+});
+
+// Get risk algorithm configuration
+app.get("/api/risk-config", (req, res) => {
+    try {
+        res.json({
+            success: true,
+            config: {
+                algorithmVersion:
+                    AssetAnalysisService.DEFAULTS.algorithmVersion,
+                supportedTypes: [
+                    "invoice",
+                    "saas",
+                    "creator",
+                    "rental",
+                    "luxury",
+                ],
+                thresholds: AssetAnalysisService.DEFAULTS.thresholds,
+                weights: AssetAnalysisService.DEFAULTS.weights,
+            },
+        });
+    } catch (error) {
+        console.error("Failed to get risk config:", error);
+        res.status(500).json({ error: "Failed to get configuration" });
+    }
 });
 
 // Health check
@@ -71,19 +165,29 @@ app.get("/", (req, res) => {
         status: "running",
         timestamp: new Date().toISOString(),
         version: "1.0.0",
+        riskAnalysis: {
+            algorithmVersion: AssetAnalysisService.DEFAULTS.algorithmVersion,
+            supportedTypes: ["invoice", "saas", "creator", "rental", "luxury"],
+            aiEnhanced: true,
+            aiModel: "gpt-4",
+        },
         endpoints: {
             assets: "/api/assets",
-            investments: "/api/investments", 
+            investments: "/api/investments",
             baskets: "/api/baskets",
             payments: "/api/payments",
             users: "/api/users",
-            admin: "/api/admin"
-        }
+            admin: "/api/admin",
+            riskAnalysis: "/api/risk-analysis/:type",
+            assetAnalysis: "/api/analyze-asset",
+            aiAssetAnalysis: "/api/analyze-asset-ai",
+            riskConfig: "/api/risk-config",
+        },
     });
 });
 
-app.get("/health",  (req, res) => {
-    res.json("Cron huh?")
+app.get("/health", (req, res) => {
+    res.json("Cron huh?");
 });
 
 // Global error handler
@@ -92,7 +196,7 @@ app.use((err, req, res, next) => {
     res.status(500).json({
         success: false,
         error: "Internal server error",
-        ...(process.env.NODE_ENV === 'development' && { details: err.message })
+        ...(process.env.NODE_ENV === "development" && { details: err.message }),
     });
 });
 
