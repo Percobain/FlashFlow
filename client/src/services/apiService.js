@@ -1,5 +1,4 @@
-const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 class ApiService {
     constructor() {
@@ -15,7 +14,10 @@ class ApiService {
             ...options,
         };
 
-        if (config.body && typeof config.body === "object") {
+        // Handle FormData (for file uploads)
+        if (config.body instanceof FormData) {
+            delete config.headers["Content-Type"]; // Let browser set boundary
+        } else if (config.body && typeof config.body === "object") {
             config.body = JSON.stringify(config.body);
         }
 
@@ -36,167 +38,117 @@ class ApiService {
         }
     }
 
-    // Blockchain API endpoints
-    async getNetworkInfo() {
-        return this.request("/api/blockchain/network");
+    // === ASSET CREATION FLOW ===
+
+    // 1. Create Asset (upload + AI analysis)
+    async createAsset(formData) {
+        return this.request("/api/assets/create", {
+            method: "POST",
+            body: formData, // FormData with file + metadata
+        });
     }
 
-    async createAssetOnBackend(assetData) {
-        return this.request("/api/blockchain/assets", {
+    // 2. AI Analysis (separate endpoint)
+    async analyzeAssetWithAI(assetData) {
+        return this.request("/api/ai/analyze", {
             method: "POST",
             body: assetData,
         });
     }
 
-    async getAssetInfo(assetId) {
-        return this.request(`/api/blockchain/assets/${assetId}`);
-    }
-
-    async releaseFunds(assetId, amount) {
-        return this.request(`/api/blockchain/assets/${assetId}/release`, {
+    // 2. Fund Asset
+    async fundAsset(assetId) {
+        return this.request(`/api/assets/${assetId}/fund`, {
             method: "POST",
-            body: { amount },
         });
     }
 
-    async getPoolStats() {
-        return this.request("/api/blockchain/pool/stats");
+    // 3. Get Asset Details
+    async getAsset(assetId) {
+        return this.request(`/api/assets/${assetId}`);
     }
 
-    async getWalletBalance(address) {
-        return this.request(`/api/blockchain/wallet/balance/${address}`);
+    // 4. Get User Assets
+    async getUserAssets(userAddress) {
+        return this.request(`/api/users/${userAddress}/assets`);
     }
 
-    // Asset management endpoints
-    async getAssets(filters = {}) {
-        const params = new URLSearchParams(filters);
-        return this.request(`/api/assets?${params}`);
+    // === INVESTMENT FLOW ===
+
+    // 1. Get All Baskets
+    async getBaskets() {
+        return this.request("/api/baskets");
     }
 
-    async createAsset(assetData) {
-        return this.request("/api/assets", {
-            method: "POST",
-            body: assetData,
-        });
-    }
-
-    async updateAsset(assetId, updateData) {
-        return this.request(`/api/assets/${assetId}`, {
-            method: "PUT",
-            body: updateData,
-        });
-    }
-
-    async deleteAsset(assetId) {
-        return this.request(`/api/assets/${assetId}`, {
-            method: "DELETE",
-        });
-    }
-
-    // Investment endpoints
-    async getInvestments(filters = {}) {
-        const params = new URLSearchParams(filters);
-        return this.request(`/api/investments?${params}`);
-    }
-
-    async createInvestment(investmentData) {
-        return this.request("/api/investments", {
+    // 2. Invest in Basket
+    async investInBasket(basketId, investmentData) {
+        return this.request(`/api/baskets/${basketId}/invest`, {
             method: "POST",
             body: investmentData,
         });
     }
 
-  // Basket API endpoints
-  async getBaskets(filters = {}) {
-    const queryParams = new URLSearchParams();
-    
-    if (filters.basketType) queryParams.append('basketType', filters.basketType);
-    if (filters.status) queryParams.append('status', filters.status);
-    if (filters.page) queryParams.append('page', filters.page);
-    if (filters.limit) queryParams.append('limit', filters.limit);
-    
-    return this.request(`/api/baskets?${queryParams.toString()}`);
-  }
-
-  async getBasketDetails(basketId) {
-    return this.request(`/api/baskets/${basketId}`);
-  }
-
-  async investInBasket(basketId, amount) {
-    return this.request(`/api/baskets/${basketId}/invest`, {
-      method: 'POST',
-      body: { amount },
-    });
-  }
-
-  async getBasketPerformance(basketId, period = '12m') {
-    return this.request(`/api/baskets/${basketId}/performance?period=${period}`);
-  }
-
-    // User endpoints
-    async getUserProfile(address) {
-        return this.request(`/api/users/${address}`);
+    // 3. Get Basket Details
+    async getBasketDetails(basketId) {
+        return this.request(`/api/baskets/${basketId}`);
     }
 
-    async updateUserProfile(address, profileData) {
-        return this.request(`/api/users/${address}`, {
-            method: "PUT",
-            body: profileData,
-        });
-    }
+    // === SIMULATION ===
 
-    // KYC endpoints
-    async submitKYC(kycData) {
-        return this.request("/api/users/kyc", {
+    // Simulate Repayment
+    async simulateRepayment(assetId, amount) {
+        return this.request(`/api/assets/${assetId}/repay`, {
             method: "POST",
-            body: kycData,
+            body: { amount },
         });
     }
 
-    async getKYCStatus(address) {
-        return this.request(`/api/users/${address}/kyc`);
+    // === UTILITIES ===
+
+    // Get Pool Stats
+    async getPoolStats() {
+        return this.request("/api/stats");
     }
 
-    // Payment endpoints
-    async initiatePayment(paymentData) {
-        return this.request("/api/payments", {
+    // Generate Mock Data
+    async generateMockData() {
+        return this.request("/api/mock/generate");
+    }
+
+    // fUSD Approval Transaction
+    async getApprovalTxData(amount) {
+        return this.request("/api/fusd/approve", {
             method: "POST",
-            body: paymentData,
+            body: { amount },
         });
     }
 
-    async getPaymentHistory(address) {
-        return this.request(`/api/payments/history/${address}`);
+    // Health Check
+    async healthCheck() {
+        return this.request("/health");
     }
 
-    // AI-Enhanced Asset Analysis endpoints
-    async analyzeAsset(assetData) {
-        return this.request("/api/analyze-asset", {
-            method: "POST",
-            body: assetData,
+    // === LEGACY SUPPORT (for backward compatibility) ===
+
+    async getNetworkInfo() {
+        return { 
+            chainId: 5920, 
+            name: 'Kadena EVM Testnet',
+            rpcUrl: import.meta.env.VITE_RPC_URL
+        };
+    }
+
+    async createAssetOnBackend(assetData) {
+        // Convert to new format
+        const formData = new FormData();
+        Object.keys(assetData).forEach(key => {
+            if (key === 'document' && assetData[key]) {
+                formData.append('document', assetData[key]);
+            } else {
+                formData.append(key, assetData[key]);
+            }
         });
-    }
-
-    async analyzeAssetWithAI(assetData) {
-        return this.request("/api/analyze-asset-ai", {
-            method: "POST",
-            body: assetData,
-        });
-    }
-
-    async performRiskAnalysis(type, data) {
-        return this.request(`/api/risk-analysis/${type}`, {
-            method: "POST",
-            body: data,
-        });
-    }
-
-    async getRiskConfig() {
-        return this.request("/api/risk-config");
-    }
-
-    async getHealthCheck() {
-        return this.request("/");
+        return this.createAsset(formData);
     }
 }
 

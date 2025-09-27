@@ -6,6 +6,8 @@ import NBButton from "../components/NBButton";
 import NBCard from "../components/NBCard";
 import AIAnalysisDemo from "../components/AIAnalysisDemo";
 import useAppStore from "../stores/appStore";
+import apiService from "../services/apiService";
+import web3Service from "../services/web3Service";
 
 const GetCash = () => {
     const [showWizard, setShowWizard] = useState(false);
@@ -106,14 +108,35 @@ const GetCash = () => {
         resetCurrentFlow();
     };
 
+    // Add this function to handle wizard completion
+    const handleWizardComplete = (result) => {
+        setShowWizard(false);
+        setSelectedType(null);
+        
+        if (result.success) {
+            addNotification({
+                type: 'success',
+                title: 'Asset Tokenized!',
+                message: `Your ${selectedType} has been successfully tokenized. Asset ID: ${result.assetId}`,
+                action: {
+                    label: 'View Transaction',
+                    onClick: () => window.open(`${import.meta.env.VITE_EXPLORER_URL}/tx/${result.transactionHash}`, '_blank')
+                }
+            });
+        }
+    };
+
     if (showWizard) {
         return (
             <div className="min-h-screen py-12">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <TokenizationWizard
                         type={selectedType}
-                        onComplete={handleComplete}
-                        onCancel={handleCancel}
+                        onComplete={handleWizardComplete}
+                        onCancel={() => {
+                            setShowWizard(false);
+                            setSelectedType(null);
+                        }}
                     />
                 </div>
             </div>

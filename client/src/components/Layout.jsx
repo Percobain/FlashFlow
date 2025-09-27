@@ -10,8 +10,7 @@ import {
   DollarSign,
   TrendingUp,
   LayoutDashboard,
-  HelpCircle,
-  AlertCircle
+  HelpCircle
 } from 'lucide-react';
 import { useWeb3 } from '../contexts/Web3Context';
 import { formatBalance } from '../lib/utils';
@@ -24,7 +23,6 @@ const Layout = ({ children }) => {
     chainId,
     networkName,
     connectWallet, 
-    switchToKadenaEVM,
     isConnecting,
     balances
   } = useWeb3();
@@ -42,31 +40,12 @@ const Layout = ({ children }) => {
     return location.pathname.startsWith(path);
   };
 
-  const isKadenaEVM = chainId === '5920';
-  const shouldShowNetworkWarning = isConnected && !isKadenaEVM;
+  const isKadenaEVM = chainId === 5920 || chainId === '5920';
 
   return (
     <div className="min-h-screen bg-nb-bg">
-      {/* Fixed Network Warning Banner */}
-      {shouldShowNetworkWarning && (
-        <div className="fixed top-0 left-0 right-0 bg-yellow-500 text-white px-4 py-2 text-center z-50">
-          <div className="flex items-center justify-center space-x-2">
-            <AlertCircle size={16} />
-            <span className="text-sm font-medium">
-              Please switch to Kadena EVM Testnet for full functionality
-            </span>
-            <button
-              onClick={switchToKadenaEVM}
-              className="ml-2 bg-white text-yellow-600 px-3 py-1 rounded text-xs hover:bg-gray-100 transition-colors"
-            >
-              Switch Network
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Fixed Header */}
-      <header className={`fixed top-0 left-0 right-0 border-b-3 border-nb-ink bg-nb-card shadow-nb-sm z-40 ${shouldShowNetworkWarning ? 'top-10' : 'top-0'}`}>
+      <header className="fixed top-0 left-0 right-0 border-b-3 border-nb-ink bg-nb-card shadow-nb-sm z-40">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
@@ -162,7 +141,7 @@ const Layout = ({ children }) => {
       </header>
 
       {/* Main Content with proper top padding */}
-      <main className={`min-h-screen ${shouldShowNetworkWarning ? 'pt-navbar-warning' : 'pt-navbar'}`}>
+      <main className="min-h-screen pt-16">
         {children}
       </main>
 

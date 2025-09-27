@@ -2,32 +2,26 @@ import { ethers } from 'ethers';
 import { toast } from 'sonner';
 
 // Import ABIs
-import { FlashFlowAgent } from '../abis/FlashFlowAgent.js';
+import { FlashFlow } from '../abis/FlashFlow.js';
 import { FlashFlowToken } from '../abis/FlashFlowToken.js';
-import { MainPool } from '../abis/MainPool.js';
-import { SelfVerifier } from '../abis/SelfVerifier.js';
 
-// Contract addresses from deployment
+// Contract addresses from environment
 const CONTRACT_ADDRESSES = {
-  // Kadena EVM Testnet addresses
-  FLASHFLOW_TOKEN: '0xAdB17C7D41c065C0c57D69c7B4BC97A6fcD4D117',
-  MAIN_POOL: '0xCA7c84C6Ca61f48fA04d7dBbA1649f269962997c',
-  FLASHFLOW_AGENT: '0x5F675D9E81bC91c73a41f3Ee377a7c1eeb2C062f'
+  FUSD: import.meta.env.VITE_FUSD_ADDRESS,
+  FLASHFLOW: import.meta.env.VITE_FLASHFLOW_ADDRESS
 };
 
-// Network configurations
-const NETWORKS = {
-  KADENA_TESTNET: {
-    chainId: '0x1720', // 5920 in hex
-    chainName: 'Kadena EVM Testnet',
-    nativeCurrency: {
-      name: 'KDA',
-      symbol: 'KDA',
-      decimals: 18
-    },
-    rpcUrls: ['https://evm-testnet.chainweb.com/chainweb/0.0/evm-testnet/chain/20/evm/rpc'],
-    blockExplorerUrls: ['https://explorer.evm-testnet.chainweb.com']
-  }
+// Network configuration - Updated for your specific network
+const KADENA_NETWORK = {
+  chainId: '0x1720', // 5920 in hex
+  chainName: 'Kadena Chainweb EVM Testnet 20',
+  nativeCurrency: {
+    name: 'KDA',
+    symbol: 'KDA',
+    decimals: 18
+  },
+  rpcUrls: ['https://evm-testnet.chainweb.com/chainweb/0.0/evm-testnet/chain/20/evm/rpc'],
+  blockExplorerUrls: ['http://chain-20.evm-testnet-blockscout.chainweb.com']
 };
 
 class Web3Service {
@@ -40,6 +34,19 @@ class Web3Service {
     this.isInitialized = false;
   }
 
+  // Check if current chain is Kadena EVM - FIXED FUNCTION
+  isKadenaEVM(chainId) {
+    const numericChainId = typeof chainId === 'string' ? parseInt(chainId, 16) : chainId;
+    // Accept both 5920 and 20 as valid Kadena EVM chain IDs
+    return numericChainId === 5920 || numericChainId === 20;
+  }
+
+  // Check if user is on correct network - FIXED FUNCTION
+  isCorrectNetwork() {
+    if (!this.chainId) return false;
+    return this.isKadenaEVM(this.chainId);
+  }
+
   // Initialize Web3 connection
   async initialize() {
     try {
@@ -48,19 +55,12 @@ class Web3Service {
       }
 
       this.provider = new ethers.BrowserProvider(window.ethereum);
-      
-      // Check if already connected
-      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
-      if (accounts.length > 0) {
-        await this.connect();
-      }
-
-      // Setup event listeners
-      this.setupEventListeners();
       this.isInitialized = true;
       
+      // Setup event listeners
+      this.setupEventListeners();
+      
       console.log('✅ Web3Service initialized');
-      return true;
     } catch (error) {
       console.error('❌ Web3Service initialization failed:', error);
       throw error;
@@ -68,65 +68,108 @@ class Web3Service {
   }
 
   // Connect wallet
-  async connect() {
+  async connectWallet() {
     try {
-      const accounts = await window.ethereum.request({ 
-        method: 'eth_requestAccounts' 
+      if (!this.isInitialized) {
+        await this.initialize();
+      }
+
+      // Request account access
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts'
       });
-      
+
       if (accounts.length === 0) {
         throw new Error('No accounts found');
       }
 
       this.account = accounts[0];
       this.signer = await this.provider.getSigner();
-      
+
       // Get network info
       const network = await this.provider.getNetwork();
-      this.chainId = network.chainId.toString();
-      
-      // Initialize contracts
-      await this.initializeContracts();
-      
-      toast.success('Wallet connected successfully! 🎉');
+      this.chainId = parseInt(network.chainId);
+
+      console.log('🔗 Connected to chain ID:', this.chainId);
+      console.log('🔗 Network name:', this.getNetworkName());
+
+      // Check if we're on Kadena EVM
+      if (this.isKadenaEVM(this.chainId)) {
+        console.log('✅ Already on Kadena EVM!');
+        await this.initializeContracts();
+        toast.success('Wallet connected to Kadena EVM!');
+      } else {
+        console.log('⚠️  Not on Kadena EVM, attempting to switch...');
+        await this.switchToKadenaEVM();
+      }
+
+      console.log('✅ Wallet connected:', this.account);
+
       return {
         account: this.account,
-        chainId: this.chainId,
-        network: network.name
+        chainId: this.chainId
       };
     } catch (error) {
       console.error('❌ Wallet connection failed:', error);
-      toast.error(`Failed to connect wallet: ${error.message}`);
+      toast.error('Failed to connect wallet: ' + error.message);
       throw error;
     }
   }
 
-  // Switch to Kadena EVM Testnet
+  // Connect alias
+  async connect() {
+    return await this.connectWallet();
+  }
+
+  // Switch to Kadena network
   async switchToKadenaEVM() {
     try {
+      console.log('🔄 Attempting to switch to Kadena EVM...');
+      
+      // First try to switch to existing network
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: NETWORKS.KADENA_TESTNET.chainId }]
+        params: [{ chainId: KADENA_NETWORK.chainId }]
       });
       
-      toast.success('Switched to Kadena EVM Testnet');
-      return true;
+      console.log('✅ Switched to Kadena EVM');
+      
+      // Update chainId after switch
+      const network = await this.provider.getNetwork();
+      this.chainId = parseInt(network.chainId);
+      
+      // Initialize contracts after successful switch
+      if (this.isKadenaEVM(this.chainId)) {
+        await this.initializeContracts();
+      }
+      
     } catch (switchError) {
+      console.log('⚠️  Switch failed, attempting to add network...', switchError.code);
+      
+      // Network doesn't exist, add it
       if (switchError.code === 4902) {
         try {
           await window.ethereum.request({
             method: 'wallet_addEthereumChain',
-            params: [NETWORKS.KADENA_TESTNET]
+            params: [KADENA_NETWORK]
           });
           
-          toast.success('Kadena EVM Testnet added and switched');
-          return true;
+          console.log('✅ Added Kadena EVM network');
+          
+          // Update chainId after adding
+          const network = await this.provider.getNetwork();
+          this.chainId = parseInt(network.chainId);
+          
+          // Initialize contracts after successful add
+          if (this.isKadenaEVM(this.chainId)) {
+            await this.initializeContracts();
+          }
         } catch (addError) {
-          toast.error('Failed to add Kadena EVM Testnet');
-          throw addError;
+          console.error('❌ Failed to add Kadena EVM network:', addError);
+          throw new Error('Failed to add Kadena EVM network. Please add it manually.');
         }
       } else {
-        toast.error('Failed to switch network');
+        console.error('❌ Failed to switch to Kadena EVM:', switchError);
         throw switchError;
       }
     }
@@ -134,28 +177,33 @@ class Web3Service {
 
   // Initialize contract instances
   async initializeContracts() {
-    try {
-      if (!this.signer) {
-        throw new Error('Signer not available');
-      }
+    if (!this.signer) {
+      throw new Error('Signer not available');
+    }
 
-      this.contracts = {
-        flashFlowToken: new ethers.Contract(
-          CONTRACT_ADDRESSES.FLASHFLOW_TOKEN,
-          FlashFlowToken,
-          this.signer
-        ),
-        mainPool: new ethers.Contract(
-          CONTRACT_ADDRESSES.MAIN_POOL,
-          MainPool,
-          this.signer
-        ),
-        flashFlowAgent: new ethers.Contract(
-          CONTRACT_ADDRESSES.FLASHFLOW_AGENT,
-          FlashFlowAgent,
-          this.signer
-        )
-      };
+    if (!this.isCorrectNetwork()) {
+      console.warn('⚠️  Not on Kadena EVM, skipping contract initialization');
+      return;
+    }
+
+    try {
+      // FlashFlow main contract
+      this.contracts.flashFlow = new ethers.Contract(
+        CONTRACT_ADDRESSES.FLASHFLOW,
+        FlashFlow,
+        this.signer
+      );
+
+      // fUSD token contract
+      this.contracts.fUSD = new ethers.Contract(
+        CONTRACT_ADDRESSES.FUSD,
+        FlashFlowToken,
+        this.signer
+      );
+
+      // For backward compatibility with old code
+      this.contracts.flashFlowAgent = this.contracts.flashFlow;
+      this.contracts.mainPool = this.contracts.flashFlow;
 
       console.log('✅ Contracts initialized');
     } catch (error) {
@@ -164,397 +212,367 @@ class Web3Service {
     }
   }
 
-  // Setup event listeners
-  setupEventListeners() {
-    if (!window.ethereum) return;
+  // Smart contract interactions (only work on Kadena EVM)
 
-    window.ethereum.on('accountsChanged', (accounts) => {
-      if (accounts.length === 0) {
-        this.disconnect();
-        toast.info('Wallet disconnected');
-      } else if (accounts[0] !== this.account) {
-        this.account = accounts[0];
-        this.connect();
-        toast.success('Account changed');
-      }
-    });
+  // 1. Create Asset
+  async createAsset(assetId, amount, riskScore, assetType) {
+    if (!this.isCorrectNetwork()) {
+      throw new Error('Please switch to Kadena EVM Testnet');
+    }
 
-    window.ethereum.on('chainChanged', (chainId) => {
-      this.chainId = parseInt(chainId, 16).toString();
-      toast.info('Network changed');
-      // Reinitialize contracts if needed
-      if (this.signer) {
-        this.initializeContracts();
-      }
-    });
-  }
-
-  // Disconnect wallet
-  disconnect() {
-    this.account = null;
-    this.signer = null;
-    this.contracts = {};
-    this.chainId = null;
-  }
-
-  // Get account info
-  getAccount() {
-    return this.account;
-  }
-
-  // Get chain ID
-  getChainId() {
-    return this.chainId;
-  }
-
-  // Check if connected
-  isConnected() {
-    return !!this.account;
-  }
-
-  // Get network name
-  getNetworkName() {
-    const networks = {
-      '1': 'Ethereum Mainnet',
-      '11155111': 'Sepolia Testnet',
-      '5920': 'Kadena EVM Testnet',
-      '11142220': 'Celo Sepolia Testnet'
-    };
-    return networks[this.chainId] || `Chain ID: ${this.chainId}`;
-  }
-
-  // ===== TOKEN OPERATIONS =====
-
-  // Get token balance
-  async getTokenBalance(address = null) {
     try {
-      const targetAddress = address || this.account;
-      if (!targetAddress) throw new Error('No address provided');
+      const tx = await this.contracts.flashFlow.createAsset(
+        assetId,
+        ethers.parseEther(amount.toString()),
+        riskScore,
+        assetType
+      );
+      
+      toast.success('Asset creation transaction sent!');
+      return await tx.wait();
+    } catch (error) {
+      console.error('Create asset error:', error);
+      toast.error('Failed to create asset: ' + error.message);
+      throw error;
+    }
+  }
 
-      const balance = await this.contracts.flashFlowToken.balanceOf(targetAddress);
+  // 2. Approve fUSD for FlashFlow contract
+  async approveFUSD(amount) {
+    if (!this.isCorrectNetwork()) {
+      throw new Error('Please switch to Kadena EVM Testnet');
+    }
+
+    try {
+      const tx = await this.contracts.fUSD.approve(
+        CONTRACT_ADDRESSES.FLASHFLOW,
+        ethers.parseEther(amount.toString())
+      );
+      
+      toast.success('Approval transaction sent!');
+      return await tx.wait();
+    } catch (error) {
+      console.error('Approve error:', error);
+      toast.error('Failed to approve fUSD: ' + error.message);
+      throw error;
+    }
+  }
+
+  // 3. Fund Asset
+  async fundAsset(assetId) {
+    if (!this.isCorrectNetwork()) {
+      throw new Error('Please switch to Kadena EVM Testnet');
+    }
+
+    try {
+      const tx = await this.contracts.flashFlow.fundAsset(assetId);
+      
+      toast.success('Funding transaction sent!');
+      return await tx.wait();
+    } catch (error) {
+      console.error('Fund asset error:', error);
+      toast.error('Failed to fund asset: ' + error.message);
+      throw error;
+    }
+  }
+
+  // 4. Invest in Basket
+  async investInBasket(basketId, amount) {
+    if (!this.isCorrectNetwork()) {
+      throw new Error('Please switch to Kadena EVM Testnet');
+    }
+
+    try {
+      // First approve fUSD
+      await this.approveFUSD(amount);
+      
+      // Then invest
+      const tx = await this.contracts.flashFlow.investInBasket(
+        basketId,
+        ethers.parseEther(amount.toString())
+      );
+      
+      toast.success('Investment transaction sent!');
+      return await tx.wait();
+    } catch (error) {
+      console.error('Investment error:', error);
+      toast.error('Failed to invest: ' + error.message);
+      throw error;
+    }
+  }
+
+  // 5. Simulate Repayment
+  async simulateRepayment(assetId, amount) {
+    if (!this.isCorrectNetwork()) {
+      throw new Error('Please switch to Kadena EVM Testnet');
+    }
+
+    try {
+      // First approve fUSD
+      await this.approveFUSD(amount);
+      
+      // Then repay
+      const tx = await this.contracts.flashFlow.simulateRepayment(
+        assetId,
+        ethers.parseEther(amount.toString())
+      );
+      
+      toast.success('Repayment simulation sent!');
+      return await tx.wait();
+    } catch (error) {
+      console.error('Repayment error:', error);
+      toast.error('Failed to simulate repayment: ' + error.message);
+      throw error;
+    }
+  }
+
+  // 6. Mint fUSD (for testing)
+  async mintFUSD(amount) {
+    if (!this.isCorrectNetwork()) {
+      throw new Error('Please switch to Kadena EVM Testnet');
+    }
+
+    try {
+      const tx = await this.contracts.fUSD.mint(
+        this.account,
+        ethers.parseEther(amount.toString())
+      );
+      
+      toast.success('fUSD mint transaction sent!');
+      return await tx.wait();
+    } catch (error) {
+      console.error('Mint error:', error);
+      toast.error('Failed to mint fUSD: ' + error.message);
+      throw error;
+    }
+  }
+
+  // Read functions
+
+  // Get native balance (KDA)
+  async getNativeBalance() {
+    try {
+      if (!this.account) return '0';
+      const balance = await this.provider.getBalance(this.account);
       return ethers.formatEther(balance);
     } catch (error) {
-      console.error('❌ Failed to get token balance:', error);
-      throw error;
+      console.error('Get native balance error:', error);
+      return '0';
     }
   }
 
-  // Get native balance (ETH/TKDA)
-  async getNativeBalance(address = null) {
+  // Get token balance (fUSD)
+  async getTokenBalance() {
     try {
-      const targetAddress = address || this.account;
-      if (!targetAddress) throw new Error('No address provided');
-
-      const balance = await this.provider.getBalance(targetAddress);
+      if (!this.account || !this.contracts.fUSD || !this.isCorrectNetwork()) return '0';
+      const balance = await this.contracts.fUSD.balanceOf(this.account);
       return ethers.formatEther(balance);
     } catch (error) {
-      console.error('❌ Failed to get native balance:', error);
-      throw error;
+      console.error('Get token balance error:', error);
+      return '0';
     }
   }
 
-  // Approve token spending
-  async approveToken(spender, amount) {
+  // Get balances (combined)
+  async getBalances() {
     try {
-      const amountWei = ethers.parseEther(amount.toString());
-      const tx = await this.contracts.flashFlowToken.approve(spender, amountWei);
-      
-      toast.loading('Approving tokens...', { id: 'approve' });
-      const receipt = await tx.wait();
-      
-      toast.success('Tokens approved successfully!', { id: 'approve' });
-      return receipt;
+      const [native, fusd] = await Promise.all([
+        this.getNativeBalance(),
+        this.getTokenBalance()
+      ]);
+
+      return { native, fusd, token: fusd }; // token alias for backward compatibility
     } catch (error) {
-      toast.error('Failed to approve tokens', { id: 'approve' });
-      console.error('❌ Token approval failed:', error);
-      throw error;
+      console.error('Get balances error:', error);
+      return { native: '0', fusd: '0', token: '0' };
     }
   }
 
-  // Transfer tokens
-  async transferToken(to, amount) {
+  // Get basket stats
+  async getBasketStats(basketId) {
     try {
-      const amountWei = ethers.parseEther(amount.toString());
-      const tx = await this.contracts.flashFlowToken.transfer(to, amountWei);
-      
-      toast.loading('Transferring tokens...', { id: 'transfer' });
-      const receipt = await tx.wait();
-      
-      toast.success('Tokens transferred successfully!', { id: 'transfer' });
-      return receipt;
+      const stats = await this.contracts.flashFlow.getBasketStats(basketId);
+      return {
+        totalValue: ethers.formatEther(stats[0]),
+        totalInvested: ethers.formatEther(stats[1]),
+        investorCount: stats[2].toString()
+      };
     } catch (error) {
-      toast.error('Failed to transfer tokens', { id: 'transfer' });
-      console.error('❌ Token transfer failed:', error);
-      throw error;
-    }
-  }
-
-  // ===== POOL OPERATIONS =====
-
-  // Deposit to pool
-  async depositToPool(amount) {
-    try {
-      const amountWei = ethers.parseEther(amount.toString());
-      
-      // First approve the pool to spend tokens
-      await this.approveToken(CONTRACT_ADDRESSES.MAIN_POOL, amount);
-      
-      // Then deposit
-      const tx = await this.contracts.mainPool.deposit(amountWei);
-      
-      toast.loading('Depositing to pool...', { id: 'deposit' });
-      const receipt = await tx.wait();
-      
-      toast.success('Deposited to pool successfully!', { id: 'deposit' });
-      return receipt;
-    } catch (error) {
-      toast.error('Failed to deposit to pool', { id: 'deposit' });
-      console.error('❌ Pool deposit failed:', error);
-      throw error;
+      console.error('Get basket stats error:', error);
+      return { totalValue: '0', totalInvested: '0', investorCount: '0' };
     }
   }
 
   // Get pool stats
   async getPoolStats() {
     try {
-      const stats = await this.contracts.mainPool.getPoolStats();
+      if (!this.isCorrectNetwork()) return { 
+        poolBalance: '0', 
+        totalLiquidity: '0',
+        contractAddress: CONTRACT_ADDRESSES.FLASHFLOW,
+        fUSDAddress: CONTRACT_ADDRESSES.FUSD
+      };
+
+      const balance = await this.contracts.flashFlow.getPoolBalance();
       return {
-        balance: ethers.formatEther(stats.balance),
-        released: ethers.formatEther(stats.released),
-        deposited: ethers.formatEther(stats.deposited)
+        poolBalance: ethers.formatEther(balance),
+        totalLiquidity: ethers.formatEther(balance),
+        contractAddress: CONTRACT_ADDRESSES.FLASHFLOW,
+        fUSDAddress: CONTRACT_ADDRESSES.FUSD
       };
     } catch (error) {
-      console.error('❌ Failed to get pool stats:', error);
-      throw error;
+      console.error('Get pool stats error:', error);
+      return { 
+        poolBalance: '0', 
+        totalLiquidity: '0',
+        contractAddress: CONTRACT_ADDRESSES.FLASHFLOW,
+        fUSDAddress: CONTRACT_ADDRESSES.FUSD
+      };
     }
   }
 
-  // Release funds from pool
-  async releaseFunds(assetId, originator, amount) {
+  // Get protocol stats (for backward compatibility)
+  async getProtocolStats() {
     try {
-      const amountWei = ethers.parseEther(amount.toString());
-      const tx = await this.contracts.mainPool.releaseFunds(assetId, originator, amountWei);
-      
-      toast.loading('Releasing funds...', { id: 'release' });
-      const receipt = await tx.wait();
-      
-      toast.success('Funds released successfully!', { id: 'release' });
-      return receipt;
+      const poolStats = await this.getPoolStats();
+      return {
+        totalAssets: '0',
+        totalFunded: '0',
+        totalPaid: '0',
+        poolBalance: poolStats.poolBalance,
+        contractAddress: CONTRACT_ADDRESSES.FLASHFLOW
+      };
     } catch (error) {
-      toast.error('Failed to release funds', { id: 'release' });
-      console.error('❌ Fund release failed:', error);
-      throw error;
-    }
-  }
-
-  // ===== ASSET OPERATIONS =====
-
-  // Create asset
-  async createAsset(assetData) {
-    try {
-      const {
-        originator,
-        faceAmount,
-        unlockable,
-        riskScore,
-        basketId,
-        assetType,
-        documentHash
-      } = assetData;
-
-      // Generate asset ID
-      const assetId = this.generateAssetId(originator, Date.now());
-      
-      const faceAmountWei = ethers.parseEther(faceAmount.toString());
-      const unlockableWei = ethers.parseEther(unlockable.toString());
-      
-      const tx = await this.contracts.flashFlowAgent.createAsset(
-        assetId,
-        originator,
-        faceAmountWei,
-        unlockableWei,
-        riskScore,
-        basketId,
-        assetType,
-        documentHash
-      );
-      
-      toast.loading('Creating asset...', { id: 'create-asset' });
-      const receipt = await tx.wait();
-      
-      toast.success('Asset created successfully!', { id: 'create-asset' });
-      return { receipt, assetId };
-    } catch (error) {
-      toast.error('Failed to create asset', { id: 'create-asset' });
-      console.error('❌ Asset creation failed:', error);
-      throw error;
+      console.error('Get protocol stats error:', error);
+      return {
+        totalAssets: '0',
+        totalFunded: '0', 
+        totalPaid: '0',
+        poolBalance: '0',
+        contractAddress: CONTRACT_ADDRESSES.FLASHFLOW
+      };
     }
   }
 
   // Get asset info
   async getAssetInfo(assetId) {
     try {
-      const info = await this.contracts.flashFlowAgent.getAssetInfo(assetId);
+      const asset = await this.contracts.flashFlow.getAsset(assetId);
       return {
-        originator: info.originator,
-        faceAmount: ethers.formatEther(info.faceAmount),
-        unlockable: ethers.formatEther(info.unlockable),
-        riskScore: info.riskScore,
-        basketId: info.basketId,
-        funded: info.funded,
-        paid: info.paid,
-        paidAmount: ethers.formatEther(info.paidAmount),
-        assetType: info.assetType
+        originator: asset[0],
+        amount: ethers.formatEther(asset[1]),
+        unlockable: ethers.formatEther(asset[2]),
+        riskScore: asset[3],
+        basketId: asset[4],
+        funded: asset[5],
+        repaid: asset[6],
+        repaidAmount: ethers.formatEther(asset[7])
       };
     } catch (error) {
-      console.error('❌ Failed to get asset info:', error);
-      throw error;
+      console.error('Get asset info error:', error);
+      return null;
     }
   }
 
-  // Record investment
-  async recordInvestment(assetId, investor, amount) {
+  // Get network name
+  getNetworkName() {
+    if (!this.chainId) return 'Unknown';
+    
+    if (this.isKadenaEVM(this.chainId)) {
+      return 'Kadena EVM Testnet';
+    }
+    
+    switch (this.chainId) {
+      case 1:
+        return 'Ethereum Mainnet';
+      case 11155111:
+        return 'Sepolia Testnet';
+      case 137:
+        return 'Polygon';
+      case 56:
+        return 'BSC';
+      default:
+        return `Chain ${this.chainId}`;
+    }
+  }
+
+  // Utility functions
+  isConnected() {
+    return !!this.account;
+  }
+
+  getAccount() {
+    return this.account;
+  }
+
+  getChainId() {
+    return this.chainId;
+  }
+
+  // Event listeners
+  setupEventListeners() {
+    if (!window.ethereum) return;
+
+    window.ethereum.on('accountsChanged', (accounts) => {
+      if (accounts.length === 0) {
+        this.disconnect();
+      } else {
+        this.account = accounts[0];
+        window.location.reload();
+      }
+    });
+
+    window.ethereum.on('chainChanged', (chainId) => {
+      console.log('🔄 Chain changed to:', parseInt(chainId, 16));
+      window.location.reload();
+    });
+  }
+
+  disconnect() {
+    this.account = null;
+    this.signer = null;
+    this.contracts = {};
+    this.chainId = null;
+    console.log('👋 Wallet disconnected');
+  }
+
+  // Additional utility functions for backward compatibility
+  async executeTransaction(txData) {
+    if (!this.signer) {
+      throw new Error('No signer available');
+    }
+    
+    if (!this.isCorrectNetwork()) {
+      throw new Error('Please switch to Kadena EVM Testnet');
+    }
+    
     try {
-      const amountWei = ethers.parseEther(amount.toString());
-      const tx = await this.contracts.flashFlowAgent.recordInvestment(assetId, investor, amountWei);
-      
-      toast.loading('Recording investment...', { id: 'record-investment' });
-      const receipt = await tx.wait();
-      
-      toast.success('Investment recorded successfully!', { id: 'record-investment' });
-      return receipt;
+      const tx = await this.signer.sendTransaction(txData);
+      return await tx.wait();
     } catch (error) {
-      toast.error('Failed to record investment', { id: 'record-investment' });
-      console.error('❌ Investment recording failed:', error);
+      console.error('Transaction execution failed:', error);
       throw error;
     }
   }
 
-  // Mark asset as funded
-  async markFunded(assetId, unlockAmount) {
-    try {
-      const unlockAmountWei = ethers.parseEther(unlockAmount.toString());
-      const tx = await this.contracts.flashFlowAgent.markFunded(assetId, unlockAmountWei);
-      
-      toast.loading('Marking asset as funded...', { id: 'mark-funded' });
-      const receipt = await tx.wait();
-      
-      toast.success('Asset marked as funded!', { id: 'mark-funded' });
-      return receipt;
-    } catch (error) {
-      toast.error('Failed to mark asset as funded', { id: 'mark-funded' });
-      console.error('❌ Asset funding failed:', error);
-      throw error;
+  // Get transaction data for approvals (for legacy support)
+  getApprovalTxData(spender, amount) {
+    if (!this.contracts.fUSD) {
+      throw new Error('fUSD contract not initialized');
     }
-  }
-
-  // Confirm payment
-  async confirmPayment(assetId, amount) {
-    try {
-      const amountWei = ethers.parseEther(amount.toString());
-      const tx = await this.contracts.flashFlowAgent.confirmPayment(assetId, amountWei);
-      
-      toast.loading('Confirming payment...', { id: 'confirm-payment' });
-      const receipt = await tx.wait();
-      
-      toast.success('Payment confirmed successfully!', { id: 'confirm-payment' });
-      return receipt;
-    } catch (error) {
-      toast.error('Failed to confirm payment', { id: 'confirm-payment' });
-      console.error('❌ Payment confirmation failed:', error);
-      throw error;
-    }
-  }
-
-  // ===== BASKET OPERATIONS =====
-
-  // Get basket stats
-  async getBasketStats(basketId) {
-    try {
-      const stats = await this.contracts.flashFlowAgent.getBasketStats(basketId);
-      return {
-        totalValue: ethers.formatEther(stats.totalValue),
-        investedAmount: ethers.formatEther(stats.investedAmount),
-        assetCount: stats.assetCount.toString()
-      };
-    } catch (error) {
-      console.error('❌ Failed to get basket stats:', error);
-      throw error;
-    }
-  }
-
-  // Get basket assets
-  async getBasketAssets(basketId) {
-    try {
-      const assets = await this.contracts.flashFlowAgent.getBasketAssets(basketId);
-      return assets;
-    } catch (error) {
-      console.error('❌ Failed to get basket assets:', error);
-      throw error;
-    }
-  }
-
-  // Get protocol stats
-  async getProtocolStats() {
-    try {
-      const stats = await this.contracts.flashFlowAgent.getProtocolStats();
-      return {
-        totalAssets: stats._totalAssets.toString(),
-        totalFunded: ethers.formatEther(stats._totalFunded),
-        totalPaid: ethers.formatEther(stats._totalPaid)
-      };
-    } catch (error) {
-      console.error('❌ Failed to get protocol stats:', error);
-      throw error;
-    }
-  }
-
-  // ===== UTILITY FUNCTIONS =====
-
-  // Generate asset ID
-  generateAssetId(originatorAddress, timestamp) {
-    return ethers.keccak256(
-      ethers.AbiCoder.defaultAbiCoder().encode(
-        ['address', 'uint256'],
-        [originatorAddress, timestamp]
-      )
-    );
-  }
-
-  // Generate basket ID
-  generateBasketId(assetType, timestamp) {
-    return ethers.keccak256(
-      ethers.AbiCoder.defaultAbiCoder().encode(
-        ['string', 'uint256'],
-        [assetType, timestamp]
-      )
-    );
-  }
-
-  // Generate document hash
-  generateDocumentHash(documentData) {
-    return ethers.keccak256(ethers.toUtf8Bytes(JSON.stringify(documentData)));
-  }
-
-  // Format address for display
-  formatAddress(address) {
-    if (!address) return '';
-    return `${address.slice(0, 6)}...${address.slice(-4)}`;
-  }
-
-  // Parse error message
-  parseErrorMessage(error) {
-    if (error.reason) return error.reason;
-    if (error.message) {
-      // Extract revert reason from error message
-      const match = error.message.match(/reason="([^"]+)"/);
-      if (match) return match[1];
-      return error.message;
-    }
-    return 'Unknown error occurred';
+    
+    const iface = new ethers.Interface(FlashFlowToken);
+    const data = iface.encodeFunctionData('approve', [
+      spender,
+      ethers.parseEther(amount.toString())
+    ]);
+    
+    return {
+      to: CONTRACT_ADDRESSES.FUSD,
+      data,
+      value: '0x0'
+    };
   }
 }
 
-// Create and export singleton instance
-const web3Service = new Web3Service();
-export default web3Service;
+export default new Web3Service();

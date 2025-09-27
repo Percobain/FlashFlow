@@ -1,6 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import web3Service from '../services/web3Service.js';
-import backendService from '../services/backendService.js';
 import useAppStore from '../stores/appStore.js';
 import { toast } from 'sonner';
 
@@ -21,9 +20,9 @@ export const Web3Provider = ({ children }) => {
   const [chainId, setChainId] = useState(null);
   const [balances, setBalances] = useState({
     native: '0',
-    token: '0'
+    fusd: '0',
+    token: '0' // alias for fusd
   });
-  const [user, setUser] = useState(null);
 
   const { setUser: setAppStoreUser, setLoading } = useAppStore();
 
@@ -46,7 +45,7 @@ export const Web3Provider = ({ children }) => {
     initializeWeb3();
   }, []);
 
-  // Handle account connection and user creation
+  // Handle account connection (simplified - no backend user creation)
   const handleAccountConnected = async () => {
     try {
       const account = web3Service.getAccount();
@@ -55,21 +54,23 @@ export const Web3Provider = ({ children }) => {
       setAccount(account);
       setChainId(chainId);
       
-      // Create or get user account from backend
-      const userData = await createOrGetUserAccount(account);
-      setUser(userData);
+      // Create simple user object without backend call
+      const userData = {
+        address: account,
+        chainId: chainId,
+        isConnected: true,
+        networkName: web3Service.getNetworkName(),
+        isCorrectNetwork: web3Service.isCorrectNetwork()
+      };
       
       // Update app store
-      setAppStoreUser({
-        address: account,
-        isConnected: true,
-        ...userData
-      });
+      setAppStoreUser(userData);
       
       // Load balances
       await loadBalances();
       
-      toast.success('Wallet connected successfully! 🎉');
+      const networkName = web3Service.getNetworkName();
+      toast.success(`Wallet connected to ${networkName}! 🎉`);
       
     } catch (error) {
       console.error('Failed to handle account connection:', error);
@@ -77,35 +78,14 @@ export const Web3Provider = ({ children }) => {
     }
   };
 
-  // Create or get user account
-  const createOrGetUserAccount = async (address) => {
-    try {
-      // This will automatically create user if doesn't exist
-      const response = await fetch(`http://localhost:3000/api/users/${address}`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to create/get user account');
-      }
-      
-      const userData = await response.json();
-      console.log('✅ User account ready:', userData.address);
-      
-      return userData;
-    } catch (error) {
-      console.error('Error creating/getting user account:', error);
-      throw error;
-    }
-  };
-
   // Connect wallet
   const connectWallet = async () => {
-    if (!isInitialized) {
-      toast.error('Web3 service not initialized');
-      return;
-    }
-
+    if (isConnecting) return;
+    
+    setIsConnecting(true);
+    setLoading(true);
+    
     try {
-      setIsConnecting(true);
       const connection = await web3Service.connect();
       
       setAccount(connection.account);
@@ -121,6 +101,7 @@ export const Web3Provider = ({ children }) => {
       throw error;
     } finally {
       setIsConnecting(false);
+      setLoading(false);
     }
   };
 
@@ -129,14 +110,14 @@ export const Web3Provider = ({ children }) => {
     web3Service.disconnect();
     setAccount(null);
     setChainId(null);
-    setUser(null);
-    setBalances({ native: '0', token: '0' });
+    setBalances({ native: '0', fusd: '0', token: '0' });
     
+    // Clear app store
     setAppStoreUser({
       address: null,
       isConnected: false
     });
-
+    
     toast.info('Wallet disconnected');
   };
 
@@ -144,376 +125,160 @@ export const Web3Provider = ({ children }) => {
   const switchToKadenaEVM = async () => {
     try {
       await web3Service.switchToKadenaEVM();
-      // Reload after network switch
+      // Reload page to refresh state
       window.location.reload();
     } catch (error) {
       console.error('Failed to switch network:', error);
-      throw error;
+      toast.error('Failed to switch network: ' + error.message);
     }
   };
 
   // Load balances
   const loadBalances = async () => {
-    if (!account) return;
-
     try {
-      const [nativeBalance, tokenBalance] = await Promise.all([
-        web3Service.getNativeBalance(),
-        web3Service.getTokenBalance()
-      ]);
-
-      setBalances({
-        native: nativeBalance,
-        token: tokenBalance
-      });
+      const balanceData = await web3Service.getBalances();
+      setBalances(balanceData);
     } catch (error) {
       console.error('Failed to load balances:', error);
     }
   };
 
-  // Refresh balances
-  const refreshBalances = async () => {
-    await loadBalances();
-  };
+  // Smart contract interactions
 
-  // Initiate seller flow (when trying to get funding)
-  const initiateSellerFlow = async (assetData) => {
-    try {
-      if (!account) {
-        throw new Error('Wallet not connected');
-      }
-
-      const response = await fetch(`http://localhost:3000/api/users/${account}/seller`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ assetData }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to initiate seller flow');
-      }
-
-      const result = await response.json();
-      
-      // Update user data
-      setUser(result.user);
-      
-      return result;
-    } catch (error) {
-      console.error('Failed to initiate seller flow:', error);
-      throw error;
-    }
-  };
-
-  // Initiate investor flow (when trying to invest)
-  const initiateInvestorFlow = async () => {
-    try {
-      if (!account) {
-        throw new Error('Wallet not connected');
-      }
-
-      const response = await fetch(`http://localhost:3000/api/users/${account}/investor`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to initiate investor flow');
-      }
-
-      const result = await response.json();
-      
-      // Update user data
-      setUser(result.user);
-      
-      return result;
-    } catch (error) {
-      console.error('Failed to initiate investor flow:', error);
-      throw error;
-    }
-  };
-
-  // ===== SMART CONTRACT INTERACTIONS (User-signed) =====
-
-  // Create asset (with seller flow initiation)
+  // Create Asset
   const createAsset = async (assetData) => {
     try {
-      setLoading(true);
-      
-      // First initiate seller flow (adds seller type and checks KYC)
-      const sellerFlow = await initiateSellerFlow(assetData);
-      
-      if (sellerFlow.kycRequired && !user?.settings?.skipVerification) {
-        throw new Error('KYC verification required before creating assets');
-      }
-      
-      // Get transaction data from backend
-      const response = await fetch('http://localhost:3000/api/blockchain/transaction-data/create-asset', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assetData })
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to get transaction data');
-      }
-      
-      const { transactionData, assetId, basketId } = await response.json();
-      
-      // User signs and sends transaction
-      const tx = await web3Service.signer.sendTransaction(transactionData);
-      toast.loading('Creating asset on blockchain...', { id: 'create-asset' });
-      
-      const receipt = await tx.wait();
-      toast.success('Asset created successfully!', { id: 'create-asset' });
-      
-      // Sync transaction with backend
-      await fetch('http://localhost:3000/api/blockchain/sync-transaction', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          txHash: receipt.transactionHash,
-          type: 'create_asset',
-          metadata: { assetId, basketId }
-        })
-      });
-      
-      return { receipt, assetId, basketId };
-    } catch (error) {
-      toast.error('Failed to create asset', { id: 'create-asset' });
-      console.error('Failed to create asset:', error);
-      throw error;
-    } finally {
-      setLoading(false);
-      await refreshBalances();
-    }
-  };
+        // Ensure all required parameters are present
+        const {
+            assetId,
+            amount,
+            riskScore = 75, // Default fallback
+            assetType = 0   // Default to 0 (Invoice)
+        } = assetData;
 
-  // Invest in asset (with investor flow initiation)
-  const investInAsset = async (investmentData) => {
+        if (!assetId || !amount) {
+            throw new Error('Missing required asset parameters');
+        }
+
+        console.log('Creating asset with params:', { assetId, amount, riskScore, assetType });
+        
+        const result = await web3Service.createAsset(
+            assetId,
+            amount,
+            riskScore,
+            assetType
+        );
+        
+        toast.success('Asset created successfully on blockchain!');
+        return result;
+    } catch (error) {
+        console.error('Create asset failed:', error);
+        toast.error('Failed to create asset: ' + error.message);
+        throw error;
+    }
+};
+
+  // Fund Asset  
+  const fundAsset = async (assetId) => {
     try {
-      setLoading(true);
-      
-      // First initiate investor flow (adds investor type)
-      const investorFlow = await initiateInvestorFlow();
-      
-      if (!investorFlow.canInvest) {
-        throw new Error('KYC verification required before investing');
+      if (!web3Service.isCorrectNetwork()) {
+        throw new Error('Please switch to Kadena EVM Testnet');
       }
-      
-      // Step 1: Approve tokens
-      const approveResponse = await fetch('http://localhost:3000/api/blockchain/transaction-data/approve-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          spender: web3Service.contracts.flashFlowAgent.target,
-          amount: investmentData.amount
-        })
-      });
-      
-      if (!approveResponse.ok) {
-        throw new Error('Failed to get approval transaction data');
-      }
-      
-      const { transactionData: approveData } = await approveResponse.json();
-      
-      toast.loading('Approving tokens...', { id: 'approve' });
-      const approveTx = await web3Service.signer.sendTransaction(approveData);
-      await approveTx.wait();
-      toast.success('Tokens approved!', { id: 'approve' });
-      
-      // Step 2: Record investment
-      const investResponse = await fetch('http://localhost:3000/api/blockchain/transaction-data/record-investment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          assetId: investmentData.assetId,
-          investor: account,
-          amount: investmentData.amount
-        })
-      });
-      
-      if (!investResponse.ok) {
-        throw new Error('Failed to get investment transaction data');
-      }
-      
-      const { transactionData: investData } = await investResponse.json();
-      
-      toast.loading('Recording investment...', { id: 'invest' });
-      const investTx = await web3Service.signer.sendTransaction(investData);
-      const receipt = await investTx.wait();
-      toast.success('Investment recorded successfully!', { id: 'invest' });
-      
-      // Sync transaction with backend
-      await fetch('http://localhost:3000/api/blockchain/sync-transaction', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          txHash: receipt.transactionHash,
-          type: 'record_investment',
-          metadata: investmentData
-        })
-      });
-      
-      // Update user stats
-      await updateUserStats({
-        invested: investmentData.amount
-      });
-      
+
+      const receipt = await web3Service.fundAsset(assetId);
+      await loadBalances();
       return receipt;
     } catch (error) {
-      toast.error('Failed to invest in asset');
-      console.error('Failed to invest in asset:', error);
+      console.error('Fund asset failed:', error);
       throw error;
-    } finally {
-      setLoading(false);
-      await refreshBalances();
     }
   };
 
-  // Update user stats
-  const updateUserStats = async (statsUpdate) => {
+  // Invest in Basket
+  const investInBasket = async (basketId, amount) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/users/${account}/stats`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(statsUpdate),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update user stats');
+      if (!web3Service.isCorrectNetwork()) {
+        throw new Error('Please switch to Kadena EVM Testnet');
       }
 
-      const result = await response.json();
-      
-      // Update local user data
-      if (user) {
-        setUser({
-          ...user,
-          stats: result.stats
-        });
-      }
-      
-      return result;
-    } catch (error) {
-      console.error('Failed to update user stats:', error);
-    }
-  };
-
-  // Deposit to pool
-  const depositToPool = async (amount) => {
-    try {
-      setLoading(true);
-      
-      // Step 1: Approve tokens for pool
-      const approveResponse = await fetch('http://localhost:3000/api/blockchain/transaction-data/approve-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          spender: web3Service.contracts.mainPool.target,
-          amount
-        })
-      });
-      
-      if (!approveResponse.ok) {
-        throw new Error('Failed to get approval transaction data');
-      }
-      
-      const { transactionData: approveData } = await approveResponse.json();
-      
-      toast.loading('Approving tokens for pool...', { id: 'approve-pool' });
-      const approveTx = await web3Service.signer.sendTransaction(approveData);
-      await approveTx.wait();
-      toast.success('Tokens approved for pool!', { id: 'approve-pool' });
-      
-      // Step 2: Deposit to pool
-      const depositResponse = await fetch('http://localhost:3000/api/blockchain/transaction-data/deposit-pool', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount })
-      });
-      
-      if (!depositResponse.ok) {
-        throw new Error('Failed to get deposit transaction data');
-      }
-      
-      const { transactionData: depositData } = await depositResponse.json();
-      
-      toast.loading('Depositing to pool...', { id: 'deposit' });
-      const depositTx = await web3Service.signer.sendTransaction(depositData);
-      const receipt = await depositTx.wait();
-      toast.success('Deposited to pool successfully!', { id: 'deposit' });
-      
-      // Sync transaction with backend
-      await fetch('http://localhost:3000/api/blockchain/sync-transaction', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          txHash: receipt.transactionHash,
-          type: 'pool_deposit',
-          metadata: { amount }
-        })
-      });
-      
+      const receipt = await web3Service.investInBasket(basketId, amount);
+      await loadBalances();
       return receipt;
     } catch (error) {
-      toast.error('Failed to deposit to pool');
-      console.error('Failed to deposit to pool:', error);
+      console.error('Investment failed:', error);
       throw error;
-    } finally {
-      setLoading(false);
-      await refreshBalances();
     }
   };
 
-  // Get pool stats
+  // Mint fUSD (for testing)
+  const mintFUSD = async (amount) => {
+    try {
+      if (!web3Service.isCorrectNetwork()) {
+        throw new Error('Please switch to Kadena EVM Testnet');
+      }
+
+      const receipt = await web3Service.mintFUSD(amount);
+      await loadBalances();
+      toast.success(`Minted ${amount} fUSD successfully!`);
+      return receipt;
+    } catch (error) {
+      console.error('Mint fUSD failed:', error);
+      throw error;
+    }
+  };
+
+  // Simulate Repayment
+  const simulateRepayment = async (assetId, amount) => {
+    try {
+      if (!web3Service.isCorrectNetwork()) {
+        throw new Error('Please switch to Kadena EVM Testnet');
+      }
+
+      const receipt = await web3Service.simulateRepayment(assetId, amount);
+      await loadBalances();
+      return receipt;
+    } catch (error) {
+      console.error('Simulate repayment failed:', error);
+      throw error;
+    }
+  };
+
+  // Get Pool Stats
   const getPoolStats = async () => {
     try {
       return await web3Service.getPoolStats();
     } catch (error) {
       console.error('Failed to get pool stats:', error);
-      throw error;
+      return { poolBalance: '0', totalLiquidity: '0' };
     }
   };
 
-  // Get protocol stats
+  // Get Protocol Stats
   const getProtocolStats = async () => {
     try {
-      const [blockchainStats, backendStats] = await Promise.all([
-        web3Service.getProtocolStats(),
-        backendService.getProtocolAnalytics()
-      ]);
-      
-      return {
-        blockchain: blockchainStats,
-        backend: backendStats
-      };
+      return await web3Service.getProtocolStats();
     } catch (error) {
       console.error('Failed to get protocol stats:', error);
-      throw error;
+      return {
+        totalAssets: '0',
+        totalFunded: '0',
+        totalPaid: '0',
+        poolBalance: '0'
+      };
     }
   };
 
-  // Get user analytics
-  const getUserAnalytics = async () => {
-    if (!account) return null;
-
+  // Approve fUSD
+  const approveFUSD = async (amount) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/users/${account}/analytics`);
-      
-      if (!response.ok) {
-        throw new Error('Failed to get user analytics');
+      if (!web3Service.isCorrectNetwork()) {
+        throw new Error('Please switch to Kadena EVM Testnet');
       }
-      
-      return await response.json();
+
+      const receipt = await web3Service.approveFUSD(amount);
+      return receipt;
     } catch (error) {
-      console.error('Failed to get user analytics:', error);
+      console.error('Approve fUSD failed:', error);
       throw error;
     }
   };
@@ -522,35 +287,36 @@ export const Web3Provider = ({ children }) => {
     // State
     isInitialized,
     isConnecting,
+    isConnected: !!account,
     account,
     chainId,
     balances,
-    user,
-    isConnected: !!account,
-    networkName: web3Service.getNetworkName(),
     
-    // Wallet functions
+    // Network info - with safe fallbacks
+    networkName: web3Service.getNetworkName ? web3Service.getNetworkName() : 'Unknown',
+    isCorrectNetwork: web3Service.isCorrectNetwork ? web3Service.isCorrectNetwork() : false,
+    
+    // Actions
     connectWallet,
     disconnectWallet,
     switchToKadenaEVM,
-    refreshBalances,
+    loadBalances,
     
-    // User management
-    initiateSellerFlow,
-    initiateInvestorFlow,
-    updateUserStats,
-    
-    // Smart contract interactions
+    // Smart contract functions
     createAsset,
-    investInAsset,
-    depositToPool,
+    fundAsset,
+    investInBasket,
+    mintFUSD,
+    simulateRepayment,
+    approveFUSD,
+    
+    // Read functions
     getPoolStats,
     getProtocolStats,
-    getUserAnalytics,
     
-    // Services (for advanced usage)
-    web3Service,
-    backendService
+    // Legacy support
+    signer: web3Service.signer,
+    contracts: web3Service.contracts
   };
 
   return (
