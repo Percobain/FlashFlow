@@ -9,12 +9,19 @@
     "start": "node src/server.js",
     "seed": "node scripts/seed.js"
   },
-  "keywords": ["blockchain", "defi", "asset-financing", "invoices", "investments"],
+  "keywords": [
+    "blockchain",
+    "defi",
+    "asset-financing",
+    "invoices",
+    "investments"
+  ],
   "author": "FlashFlow Team",
   "license": "MIT",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.884.0",
     "@aws-sdk/s3-request-presigner": "^3.884.0",
+    "aws-sdk": "^2.1692.0",
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
@@ -29,8 +36,8 @@
     "sharp": "^0.34.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10",
-    "jest": "^29.0.0"
+    "jest": "^29.0.0",
+    "nodemon": "^3.1.10"
   },
   "engines": {
     "node": ">=16.0.0"

@@ -1,184 +1,193 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
-const Investment = require('../models/Investment');
-const Asset = require('../models/Asset');
+const UserService = require('../services/UserService');
 
-// POST /api/users/register
-router.post('/register', async (req, res) => {
-  try {
-    const { address, email, userType = ['investor'] } = req.body;
-
-    if (!address) {
-      return res.status(400).json({
-        success: false,
-        error: 'Wallet address required'
-      });
-    }
-
-    // Check if user already exists
-    let user = await User.findOne({ address: address.toLowerCase() });
-    
-    if (user) {
-      // Update existing user
-      if (email) user.email = email;
-      if (userType) user.userType = userType;
-      await user.save();
-    } else {
-      // Create new user
-      user = new User({
-        address: address.toLowerCase(),
-        email,
-        userType
-      });
-      await user.save();
-    }
-
-    res.json({
-      success: true,
-      data: {
-        address: user.address,
-        userType: user.userType,
-        kycStatus: user.kycStatus,
-        isNew: !user
-      }
-    });
-  } catch (error) {
-    console.error('User registration failed:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+// Middleware to validate Ethereum address
+const validateAddress = (req, res, next) => {
+  const { address } = req.params;
+  if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+    return res.status(400).json({ error: 'Invalid Ethereum address' });
   }
-});
+  next();
+};
 
-// GET /api/users/:address
-router.get('/:address', async (req, res) => {
+// GET user by address (creates if doesn't exist - for wallet connection)
+router.get('/:address', validateAddress, async (req, res) => {
   try {
     const { address } = req.params;
-
-    const user = await User.findOne({ address: address.toLowerCase() })
-      .lean();
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
-    }
-
-    // Get user's investment summary
-    const investments = await Investment.find({ 
-      investorAddress: address.toLowerCase() 
-    }).lean();
-
-    const assets = await Asset.find({ 
-      originatorAddress: address.toLowerCase() 
-    }).lean();
-
-    const summary = {
-      totalInvestments: investments.length,
-      totalInvested: investments.reduce((sum, inv) => sum + inv.amount, 0),
-      totalReturns: investments
-        .filter(inv => inv.paidOut)
-        .reduce((sum, inv) => sum + (inv.payoutAmount - inv.amount), 0),
-      totalAssets: assets.length,
-      totalAssetValue: assets.reduce((sum, asset) => sum + asset.faceAmount, 0)
+    
+    // This will create user if doesn't exist
+    const user = await UserService.createOrGetUser(address);
+    
+    // Return user data (excluding sensitive fields)
+    const userResponse = {
+      address: user.address,
+      email: user.email,
+      userType: user.userType,
+      kycStatus: user.kycStatus,
+      profile: user.profile,
+      preferences: user.preferences,
+      settings: {
+        notifications: user.settings.notifications,
+        privacy: user.settings.privacy
+      },
+      stats: user.stats,
+      capabilities: {
+        canInvest: user.canInvest(),
+        canSell: user.canSell(),
+        canBuy: user.canBuy(),
+        isVerified: user.isVerified()
+      },
+      createdAt: user.createdAt,
+      lastLoginAt: user.lastLoginAt
     };
 
-    res.json({
-      success: true,
-      data: {
-        ...user,
-        summary
-      }
-    });
+    res.json(userResponse);
   } catch (error) {
-    console.error('Failed to fetch user:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
+    console.error('Error getting user:', error);
+    res.status(500).json({ error: 'Failed to get user' });
   }
 });
 
-// PUT /api/users/:address/profile
-router.put('/:address/profile', async (req, res) => {
+// PUT update user profile
+router.put('/:address', validateAddress, async (req, res) => {
   try {
     const { address } = req.params;
-    const { profile, investmentProfile, settings } = req.body;
+    const updateData = req.body;
 
-    const updateData = {};
-    if (profile) updateData.profile = profile;
-    if (investmentProfile) updateData.investmentProfile = investmentProfile;
-    if (settings) updateData.settings = settings;
-
-    const user = await User.findOneAndUpdate(
-      { address: address.toLowerCase() },
-      { $set: updateData },
-      { new: true }
-    );
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
-    }
-
+    const user = await UserService.updateProfile(address, updateData);
+    
     res.json({
-      success: true,
-      data: user
-    });
-  } catch (error) {
-    console.error('Profile update failed:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-// POST /api/users/:address/kyc
-router.post('/:address/kyc', async (req, res) => {
-  try {
-    const { address } = req.params;
-    const { kycData } = req.body;
-
-    const user = await User.findOneAndUpdate(
-      { address: address.toLowerCase() },
-      {
-        $set: {
-          kycData: {
-            ...kycData,
-            submittedAt: new Date()
-          },
-          kycStatus: 'pending'
-        }
-      },
-      { new: true }
-    );
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: 'User not found'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: {
+      message: 'Profile updated successfully',
+      user: {
+        address: user.address,
+        email: user.email,
+        userType: user.userType,
         kycStatus: user.kycStatus,
-        submittedAt: user.kycData.submittedAt
+        profile: user.profile,
+        preferences: user.preferences,
+        updatedAt: user.updatedAt
       }
     });
   } catch (error) {
-    console.error('KYC submission failed:', error);
-    res.status(500).json({
-      success: false,
-      error: error.message
+    console.error('Error updating user:', error);
+    res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
+// POST initiate seller flow (when trying to get funding)
+router.post('/:address/seller', validateAddress, async (req, res) => {
+  try {
+    const { address } = req.params;
+    const { assetData } = req.body;
+
+    const result = await UserService.initiateSellerKYC(address, assetData);
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Error initiating seller flow:', error);
+    res.status(500).json({ error: 'Failed to initiate seller flow' });
+  }
+});
+
+// POST initiate investor flow (when trying to invest)
+router.post('/:address/investor', validateAddress, async (req, res) => {
+  try {
+    const { address } = req.params;
+
+    const result = await UserService.initiateInvestorFlow(address);
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Error initiating investor flow:', error);
+    res.status(500).json({ error: 'Failed to initiate investor flow' });
+  }
+});
+
+// POST complete KYC verification
+router.post('/:address/kyc', validateAddress, async (req, res) => {
+  try {
+    const { address } = req.params;
+    const kycData = req.body;
+
+    const user = await UserService.completeKYC(address, kycData);
+    
+    res.json({
+      message: 'KYC verification completed',
+      kycStatus: user.kycStatus,
+      verifiedAt: user.kycData.verifiedAt
     });
+  } catch (error) {
+    console.error('Error completing KYC:', error);
+    res.status(500).json({ error: 'Failed to complete KYC' });
+  }
+});
+
+// GET KYC status
+router.get('/:address/kyc', validateAddress, async (req, res) => {
+  try {
+    const { address } = req.params;
+    
+    const user = await UserService.createOrGetUser(address);
+    
+    res.json({
+      kycStatus: user.kycStatus,
+      isVerified: user.isVerified(),
+      kycRequired: !user.isVerified(),
+      verifiedAt: user.kycData?.verifiedAt,
+      skipVerification: user.settings?.skipVerification || false
+    });
+  } catch (error) {
+    console.error('Error getting KYC status:', error);
+    res.status(500).json({ error: 'Failed to get KYC status' });
+  }
+});
+
+// GET user analytics
+router.get('/:address/analytics', validateAddress, async (req, res) => {
+  try {
+    const { address } = req.params;
+    
+    const analytics = await UserService.getUserAnalytics(address);
+    
+    res.json(analytics);
+  } catch (error) {
+    console.error('Error getting user analytics:', error);
+    res.status(500).json({ error: 'Failed to get user analytics' });
+  }
+});
+
+// PUT update user stats (internal use)
+router.put('/:address/stats', validateAddress, async (req, res) => {
+  try {
+    const { address } = req.params;
+    const statsUpdate = req.body;
+
+    const user = await UserService.updateUserStats(address, statsUpdate);
+    
+    res.json({
+      message: 'Stats updated successfully',
+      stats: user.stats
+    });
+  } catch (error) {
+    console.error('Error updating user stats:', error);
+    res.status(500).json({ error: 'Failed to update user stats' });
+  }
+});
+
+// GET all users (admin endpoint)
+router.get('/', async (req, res) => {
+  try {
+    const filters = req.query;
+    const users = await UserService.getAllUsers(filters);
+    
+    res.json({
+      users,
+      total: users.length
+    });
+  } catch (error) {
+    console.error('Error getting all users:', error);
+    res.status(500).json({ error: 'Failed to get users' });
   }
 });
 

@@ -10,11 +10,24 @@ import {
   DollarSign,
   TrendingUp,
   LayoutDashboard,
-  HelpCircle
+  HelpCircle,
+  AlertCircle
 } from 'lucide-react';
+import { useWeb3 } from '../contexts/Web3Context';
+import { formatBalance } from '../lib/utils';
 
 const Layout = ({ children }) => {
   const location = useLocation();
+  const { 
+    isConnected, 
+    account, 
+    chainId,
+    networkName,
+    connectWallet, 
+    switchToKadenaEVM,
+    isConnecting,
+    balances
+  } = useWeb3();
   
   const navItems = [
     { name: 'Home', path: '/', icon: Home },
@@ -29,14 +42,35 @@ const Layout = ({ children }) => {
     return location.pathname.startsWith(path);
   };
 
+  const isKadenaEVM = chainId === '5920';
+  const shouldShowNetworkWarning = isConnected && !isKadenaEVM;
+
   return (
     <div className="min-h-screen bg-nb-bg">
-      {/* Header */}
-      <header className="border-b-3 border-nb-ink bg-nb-card shadow-nb-sm">
+      {/* Fixed Network Warning Banner */}
+      {shouldShowNetworkWarning && (
+        <div className="fixed top-0 left-0 right-0 bg-yellow-500 text-white px-4 py-2 text-center z-50">
+          <div className="flex items-center justify-center space-x-2">
+            <AlertCircle size={16} />
+            <span className="text-sm font-medium">
+              Please switch to Kadena EVM Testnet for full functionality
+            </span>
+            <button
+              onClick={switchToKadenaEVM}
+              className="ml-2 bg-white text-yellow-600 px-3 py-1 rounded text-xs hover:bg-gray-100 transition-colors"
+            >
+              Switch Network
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Fixed Header */}
+      <header className={`fixed top-0 left-0 right-0 border-b-3 border-nb-ink bg-nb-card shadow-nb-sm z-40 ${shouldShowNetworkWarning ? 'top-10' : 'top-0'}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <Link to="/" className="flex items-center space-x-2">
+            <Link to="/" className="flex items-center space-x-2 shrink-0">
               <motion.div
                 className="w-8 h-8 bg-gradient-to-r from-nb-accent to-nb-accent-2 rounded-lg nb-border flex items-center justify-center"
                 whileHover={{ scale: 1.05 }}
@@ -44,20 +78,20 @@ const Layout = ({ children }) => {
               >
                 <span className="text-nb-ink font-bold text-lg">₿</span>
               </motion.div>
-              <span className="font-display font-bold text-xl text-nb-ink">
+              <span className="font-display font-bold text-xl text-nb-ink hidden sm:block">
                 Flash<span className="text-nb-accent">Flow</span>
               </span>
             </Link>
 
             {/* Navigation */}
-            <nav className="hidden md:flex space-x-8">
+            <nav className="hidden lg:flex space-x-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <Link
                     key={item.path}
                     to={item.path}
-                    className={`flex items-center space-x-1 px-3 py-2 rounded-lg transition-colors ${
+                    className={`flex items-center space-x-2 px-3 py-2 rounded-lg transition-colors text-sm ${
                       isActive(item.path)
                         ? 'bg-nb-accent text-nb-ink font-semibold'
                         : 'text-nb-ink hover:bg-nb-accent/20'
@@ -70,40 +104,71 @@ const Layout = ({ children }) => {
               })}
             </nav>
 
-            {/* Connect Button */}
-            <div className="flex items-center space-x-4">
-              <div className="flex items-center space-x-2 text-sm">
-                <div className="flex items-center space-x-1">
-                  <Globe size={14} className="text-nb-accent" />
-                  <span className="text-nb-ink font-medium">Polygon</span>
+            {/* Wallet & Network Info */}
+            <div className="flex items-center space-x-2">
+              {/* Network Status - Hidden on mobile */}
+              {isConnected && (
+                <div className="hidden xl:flex items-center space-x-3 text-xs">
+                  <div className="flex items-center space-x-1">
+                    <Globe size={12} className={isKadenaEVM ? "text-nb-ok" : "text-yellow-500"} />
+                    <span className="text-nb-ink font-medium">Kadena EVM</span>
+                  </div>
+                  <div className="flex items-center space-x-1">
+                    <Shield size={12} className="text-nb-ok" />
+                    <span className="text-nb-ink font-medium">Connected</span>
+                  </div>
                 </div>
-                <div className="flex items-center space-x-1">
-                  <Shield size={14} className="text-nb-ok" />
-                  <span className="text-nb-ink font-medium">Verified</span>
-                </div>
-              </div>
+              )}
               
-              <motion.button
-                className="flex items-center space-x-2 bg-nb-accent hover:bg-nb-accent/80 text-nb-ink font-semibold px-4 py-2 rounded-nb nb-border shadow-nb-sm transition-transform hover:-translate-y-1 active:translate-y-0"
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <Wallet size={16} />
-                <span>0x1234...5678</span>
-              </motion.button>
+              {/* Wallet Connection */}
+              {!isConnected ? (
+                <motion.button
+                  onClick={connectWallet}
+                  disabled={isConnecting}
+                  className="flex items-center space-x-2 bg-nb-accent hover:bg-nb-accent/80 text-nb-ink font-semibold px-4 py-2 rounded-nb nb-border shadow-nb-sm transition-transform hover:-translate-y-1 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Wallet size={16} />
+                  <span className="hidden sm:block">{isConnecting ? 'Connecting...' : 'Connect Wallet'}</span>
+                </motion.button>
+              ) : (
+                <div className="flex items-center space-x-2">
+                  {/* Balance Display */}
+                  {balances && (
+                    <div className="text-xs text-nb-ink text-right hidden md:block">
+                      <div className="font-semibold">{formatBalance(balances.token)} fUSD</div>
+                      <div className="text-nb-ink/60">{formatBalance(balances.native, 4)} KDA</div>
+                    </div>
+                  )}
+
+                  {/* Connected Wallet */}
+                  <motion.div
+                    className="flex items-center space-x-2 bg-nb-ok/10 border border-nb-ok text-nb-ink font-semibold px-3 py-2 rounded-nb shadow-nb-sm"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <div className="w-2 h-2 bg-nb-ok rounded-full animate-pulse"></div>
+                    <Wallet size={14} />
+                    <span className="font-mono text-sm">
+                      {account?.slice(0, 4)}...{account?.slice(-4)}
+                    </span>
+                  </motion.div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="flex-1">
+      {/* Main Content with proper top padding */}
+      <main className={`min-h-screen ${shouldShowNetworkWarning ? 'pt-navbar-warning' : 'pt-navbar'}`}>
         {children}
       </main>
 
       {/* Footer */}
-      <footer className="border-t-3 border-nb-ink bg-nb-card mt-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <footer className="border-t-3 border-nb-ink bg-nb-card">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <div className="flex items-center space-x-4 mb-4 md:mb-0">
               <span className="text-nb-ink font-semibold">© 2025 FlashFlow Protocol</span>
@@ -117,7 +182,7 @@ const Layout = ({ children }) => {
             <div className="flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <Activity size={14} className="text-nb-ok" />
-                <span className="text-sm text-nb-ink">Risk Score: Live</span>
+                <span className="text-sm text-nb-ink">Protocol: Live</span>
                 <div className="w-2 h-2 bg-nb-ok rounded-full animate-pulse"></div>
               </div>
             </div>

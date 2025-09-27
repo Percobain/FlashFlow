@@ -2,6 +2,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const morgan = require('morgan');
+const helmet = require('helmet');
 
 // Load environment variables
 dotenv.config();
@@ -17,6 +19,8 @@ app.use(
         credentials: true,
     })
 );
+app.use(morgan('combined'));
+app.use(helmet());
 
 // Database connection
 const connectDB = require("./config/database");
@@ -33,7 +37,12 @@ const basketRoutes = require("./routes/baskets");
 const paymentRoutes = require("./routes/payments");
 const userRoutes = require("./routes/users");
 const adminRoutes = require("./routes/admin");
-const selfVerificationRoutes = require("./routes/self-verification");
+const  blockchainRoutes = require("./routes/blockchain")
+const storageRoutes = require('./routes/storage');
+
+// Import services
+const AssetAnalysisService = require('./services/AssetAnalysisService');
+const UserService = require('./services/UserService');
 
 app.use("/api/assets", assetRoutes);
 app.use("/api/investments", investmentRoutes);
@@ -41,7 +50,19 @@ app.use("/api/baskets", basketRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/self-verification", selfVerificationRoutes);
+app.use("/api/blockchain", blockchainRoutes)
+app.use('/api/storage', storageRoutes);
+
+// Asset analysis endpoint
+app.post('/api/analyze-asset', async (req, res) => {
+  try {
+    const analysis = await AssetAnalysisService.analyzeAssetData(req.body);
+    res.json(analysis);
+  } catch (error) {
+    console.error('Asset analysis failed:', error);
+    res.status(500).json({ error: 'Analysis failed' });
+  }
+});
 
 // Health check
 app.get("/", (req, res) => {
@@ -50,19 +71,13 @@ app.get("/", (req, res) => {
         status: "running",
         timestamp: new Date().toISOString(),
         version: "1.0.0",
-        selfVerification: {
-            enabled: !!process.env.SELF_VERIFIER_ADDRESS,
-            contract: process.env.SELF_VERIFIER_ADDRESS,
-            chainId: process.env.CELO_CHAIN_ID
-        },
         endpoints: {
             assets: "/api/assets",
             investments: "/api/investments", 
             baskets: "/api/baskets",
             payments: "/api/payments",
             users: "/api/users",
-            admin: "/api/admin",
-            selfVerification: "/api/self-verification"
+            admin: "/api/admin"
         }
     });
 });
