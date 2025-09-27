@@ -1,0 +1,78 @@
+{
+  "creator_id": "CREATOR-TT-5567",
+  "platform_presence": {
+    "tiktok": {
+      "followers": 450000,
+      "average_views": 100000,
+      "engagement_rate": 0.09,
+      "channel_age_months": 14,
+      "viral_hits": 3,
+      "upload_frequency": "Daily"
+    },
+    "instagram": {
+      "followers": 125000,
+      "engagement_rate": 0.06
+    },
+    "youtube": {
+      "subscribers": 45000,
+      "average_views": 8000
+    }
+  },
+  "revenue_streams": {
+    "tiktok_creator_fund": {
+      "monthly_average": 2500,
+      "stability": "Low",
+      "rate_changes": "Frequent"
+    },
+    "sponsorships": {
+      "monthly_average": 12000,
+      "active_contracts": 2,
+      "contract_lengths": "1-3 months",
+      "brands": ["Fashion Nova", "Bang Energy"],
+      "payment_delays": true
+    },
+    "affiliate_marketing": {
+      "monthly_average": 4500,
+      "conversion_rate": 0.02,
+      "primary_platform": "Amazon"
+    },
+    "live_gifts": {
+      "monthly_average": 3000,
+      "variability": "High"
+    }
+  },
+  "financial_metrics": {
+    "total_monthly_revenue": 22000,
+    "revenue_growth_mom": 0.08,
+    "profit_margin": 0.40,
+    "months_of_runway": 3,
+    "diversification_score": 0.45,
+    "platform_dependence": 0.75
+  },
+  "content_metrics": {
+    "content_category": "Lifestyle/Comedy",
+    "audience_demographics": {
+      "age_range": "13-24",
+      "countries": ["US", "Philippines", "India"],
+      "gender_split": "45M/55F"
+    },
+    "brand_safety": "Medium",
+    "controversy_history": "Minor - resolved",
+    "community_guideline_violations": 2,
+    "shadowban_history": true
+  },
+  "risk_factors": {
+    "algorithm_dependence": "High",
+    "content_sustainability": "Questionable",
+    "burnout_risk": "Medium",
+    "competition": "Increasing",
+    "regulatory_risks": ["TikTok ban threat", "COPPA concerns"]
+  },
+  "business_structure": {
+    "incorporated": false,
+    "entity_type": "Sole Proprietor",
+    "team_size": 1,
+    "professional_management": false,
+    "tax_compliance": "Self-managed"
+  }
+}

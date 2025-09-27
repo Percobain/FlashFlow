@@ -1,0 +1,93 @@
+{
+  "creator_id": "CREATOR-OF-7788",
+  "platform_presence": {
+    "onlyfans": {
+      "subscribers": 8500,
+      "subscription_price": 15,
+      "engagement_rate": 0.25,
+      "account_age_months": 18,
+      "content_frequency": "Daily",
+      "top_percentage": "Top 2%"
+    },
+    "instagram": {
+      "followers": 285000,
+      "engagement_rate": 0.18,
+      "content_type": "Lifestyle/Fitness"
+    },
+    "twitter": {
+      "followers": 125000,
+      "status": "Verified"
+    },
+    "tiktok": {
+      "followers": 450000,
+      "content_type": "Dance/Comedy"
+    }
+  },
+  "revenue_streams": {
+    "subscriptions": {
+      "monthly_recurring": 127500,
+      "churn_rate": 0.15,
+      "growth_rate": 0.10
+    },
+    "pay_per_view": {
+      "monthly_average": 45000,
+      "price_range": "10-100"
+    },
+    "tips": {
+      "monthly_average": 22000,
+      "top_tipper_concentration": 0.40
+    },
+    "custom_content": {
+      "monthly_average": 35000,
+      "price_range": "100-1000"
+    },
+    "affiliate_income": {
+      "monthly_average": 8000,
+      "products": ["Lingerie", "Fitness supplements"]
+    }
+  },
+  "financial_metrics": {
+    "total_monthly_revenue": 237500,
+    "platform_fees": 47500,
+    "net_monthly_income": 190000,
+    "profit_margin": 0.75,
+    "months_of_runway": 12,
+    "tax_compliance": "Quarterly payments"
+  },
+  "content_metrics": {
+    "content_category": "Adult/Premium",
+    "content_protection": "DMCA service active",
+    "leaks_detected": 3,
+    "brand_partnerships": "Limited",
+    "mainstream_crossover": "Attempting"
+  },
+  "risk_assessment": {
+    "platform_dependence": "High",
+    "payment_processor_risk": "Medium",
+    "reputation_management": "Active",
+    "stalker_incidents": 2,
+    "legal_protections": "LLC + Insurance"
+  },
+  "positive_factors": [
+    "High profit margins",
+    "Growing subscriber base",
+    "Multiple revenue streams",
+    "Professional management"
+  ],
+  "risk_factors": [
+    "Platform policy changes",
+    "Payment processing issues",
+    "Content leaks",
+    "Personal safety concerns",
+    "Tax complexity",
+    "Limited brand opportunities"
+  ],
+  "business_structure": {
+    "incorporated": true,
+    "entity_type": "LLC",
+    "team_size": 3,
+    "services": ["Editor", "Social Media Manager", "Security"],
+    "professional_support": ["Accountant", "Lawyer"],
+    "banking": "Business account challenges"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "rental_id": "LUX-2024-WAT-667",
+  "asset_details": {
+    "type": "Luxury Watch",
+    "name": "Patek Philippe Nautilus 5711",
+    "value": 350000,
+    "daily_rate": 1500,
+    "location": "New York",
+    "year": 2021,
+    "serial_number": "PP5711-8834521",
+    "condition": "Mint",
+    "insurance_value": 350000
+  },
+  "renter_profile": {
+    "client_id": "WAT-3421",
+    "name": "David Chen",
+    "verification_status": "Verified",
+    "net_worth_verified": 5000000,
+    "rental_history": {
+      "total_rentals": 8,
+      "total_value": 45000,
+      "incidents": 0,
+      "repeat_client": true,
+      "member_since": "2022",
+      "preferred_brands": ["Rolex", "Patek Philippe", "Audemars Piguet"]
+    },
+    "collector_status": true,
+    "instagram_verified": "@luxurywatchdavid"
+  },
+  "rental_terms": {
+    "start_date": "2024-04-01",
+    "end_date": "2024-04-07",
+    "total_days": 7,
+    "total_cost": 10500,
+    "security_deposit": 100000,
+    "deposit_status": "Secured via Escrow",
+    "payment_method": "Bank Wire",
+    "payment_status": "Paid in Full",
+    "purpose": "Wedding Event"
+  },
+  "risk_mitigation": {
+    "insurance_coverage": "Full Replacement",
+    "authentication": "Double Verified",
+    "delivery_method": "Secured Courier",
+    "gps_tracking": true,
+    "background_check": "Completed",
+    "credit_check": "A+",
+    "references_verified": 3,
+    "social_media_audit": "Clean"
+  },
+  "security_measures": {
+    "pickup_location": "Bank Vault",
+    "return_inspection": "Certified Dealer",
+    "wear_monitoring": "Photo Documentation",
+    "travel_restrictions": "Domestic Only"
+  }
+}

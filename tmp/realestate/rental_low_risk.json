@@ -1,0 +1,59 @@
+{
+  "lease_id": "LEASE-2024-APT-1001",
+  "property_details": {
+    "address": "123 Park Avenue, Apt 15B, New York, NY 10016",
+    "type": "Luxury Apartment",
+    "bedrooms": 2,
+    "bathrooms": 2,
+    "square_feet": 1500,
+    "monthly_rent": 5500,
+    "market_rent": 5300,
+    "year_built": 2018,
+    "amenities": ["Doorman", "Gym", "Rooftop", "Parking"]
+  },
+  "tenant_profile": {
+    "name": "Sarah Johnson",
+    "occupation": "Senior Software Engineer",
+    "employer": "Google",
+    "annual_income": 185000,
+    "income_verification": "Verified",
+    "credit_score": 820,
+    "rental_history": {
+      "previous_landlord": "Manhattan Properties LLC",
+      "previous_rent": 4800,
+      "tenure_years": 3,
+      "late_payments": 0,
+      "evictions": 0,
+      "reference_rating": "Excellent"
+    },
+    "background_check": "Clear",
+    "employment_length": 5
+  },
+  "lease_terms": {
+    "start_date": "2024-04-01",
+    "end_date": "2025-03-31",
+    "lease_length_months": 12,
+    "security_deposit": 11000,
+    "first_month_paid": true,
+    "last_month_paid": true,
+    "rent_to_income_ratio": 0.36,
+    "guarantor": "Not Required"
+  },
+  "financial_metrics": {
+    "payment_method": "Auto-pay ACH",
+    "payment_history": "New Tenant",
+    "insurance": "Renters Insurance Verified",
+    "coverage_amount": 100000,
+    "emergency_fund_verified": true
+  },
+  "risk_assessment": {
+    "risk_score": 5,
+    "stability_indicators": [
+      "Long employment history",
+      "Excellent credit",
+      "Income 3x rent",
+      "Professional occupation",
+      "Positive references"
+    ]
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "lease_id": "LEASE-2024-SEC8-4432",
+  "property_details": {
+    "address": "321 Maple Drive, Detroit, MI 48201",
+    "type": "Single Family Home",
+    "bedrooms": 3,
+    "bathrooms": 1.5,
+    "square_feet": 1400,
+    "monthly_rent": 1500,
+    "market_rent": 1400,
+    "section_8_portion": 1200,
+    "tenant_portion": 300,
+    "year_built": 1960,
+    "recent_repairs": ["New roof", "HVAC updated"]
+  },
+  "tenant_profile": {
+    "name": "Maria Gonzalez",
+    "occupation": "Medical Assistant",
+    "employer": "Detroit Medical Center",
+    "annual_income": 32000,
+    "income_verification": "Verified",
+    "credit_score": 620,
+    "rental_history": {
+      "previous_landlord": "City Housing Authority",
+      "previous_rent": 1200,
+      "tenure_years": 4,
+      "late_payments": 2,
+      "evictions": 1,
+      "eviction_age_years": 6,
+      "reference_rating": "Fair"
+    },
+    "background_check": "Old misdemeanor - 7 years",
+    "household_size": 4,
+    "children": 3
+  },
+  "lease_terms": {
+    "start_date": "2024-05-01",
+    "end_date": "2025-04-30",
+    "lease_length_months": 12,
+    "security_deposit": 300,
+    "housing_voucher": "Approved",
+    "inspection_passed": true,
+    "rent_to_income_ratio": 0.11,
+    "government_guaranteed": 0.80
+  },
+  "financial_metrics": {
+    "payment_method": "Split - HAP + Tenant",
+    "housing_authority_payment": "Direct Deposit",
+    "tenant_payment_history": "New",
+    "insurance": "Required by Program",
+    "compliance_requirements": [
+      "Annual inspection",
+      "Income verification",
+      "Family composition updates"
+    ]
+  },
+  "risk_assessment": {
+    "risk_score": 50,
+    "positive_factors": [
+      "Government pays 80%",
+      "Stable employment",
+      "Long tenancy at previous",
+      "Inspection passed"
+    ],
+    "risk_factors": [
+      "Previous eviction",
+      "Low credit score",
+      "Large household",
+      "Tight budget for utilities"
+    ],
+    "program_benefits": [
+      "Guaranteed majority payment",
+      "Regular inspections",
+      "Mediation services available"
+    ]
+  }
+}

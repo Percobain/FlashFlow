@@ -1,0 +1,56 @@
+{
+  "customer_id": "CUST-RISK-1122",
+  "company_name": "Failed Venture Startup",
+  "subscription_details": {
+    "plan": "Starter",
+    "monthly_recurring_revenue": 299,
+    "annual_contract_value": 3588,
+    "start_date": "2024-01-01",
+    "contract_length_months": 1,
+    "auto_renewal": true,
+    "cancellation_requested": true,
+    "cancellation_date": "2024-03-31"
+  },
+  "payment_metrics": {
+    "payment_method": "Credit Card",
+    "payment_frequency": "Monthly",
+    "failed_payments": 5,
+    "lifetime_value": 897,
+    "months_as_customer": 3,
+    "churn_probability": 0.95,
+    "payment_delinquent": true,
+    "days_overdue": 45
+  },
+  "usage_metrics": {
+    "monthly_active_users": 2,
+    "daily_active_users": 0,
+    "feature_adoption_rate": 0.10,
+    "support_tickets_monthly": 25,
+    "last_login": "2024-01-20",
+    "api_calls_monthly": 100,
+    "seat_utilization": 0.20
+  },
+  "account_health": {
+    "health_score": 15,
+    "nps_score": 2,
+    "customer_success_engagement": "None",
+    "executive_sponsor": false,
+    "champions_count": 0,
+    "expansion_potential": "None",
+    "at_risk_indicators": [
+      "No usage in 30 days",
+      "Payment failures",
+      "Cancellation requested",
+      "No stakeholder engagement",
+      "Excessive support burden"
+    ]
+  },
+  "financials": {
+    "company_revenue": 50000,
+    "employee_count": 3,
+    "industry": "Technology",
+    "public_company": false,
+    "funding_stage": "Pre-seed",
+    "runway_months": 2
+  }
+}

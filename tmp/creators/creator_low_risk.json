@@ -1,0 +1,74 @@
+{
+  "creator_id": "CREATOR-YT-10234",
+  "platform_presence": {
+    "youtube": {
+      "subscribers": 2500000,
+      "average_views": 500000,
+      "engagement_rate": 0.08,
+      "channel_age_years": 6,
+      "upload_frequency": "3x per week"
+    },
+    "instagram": {
+      "followers": 1800000,
+      "engagement_rate": 0.12
+    },
+    "tiktok": {
+      "followers": 3200000,
+      "engagement_rate": 0.15
+    },
+    "email_list": 125000
+  },
+  "revenue_streams": {
+    "youtube_adsense": {
+      "monthly_average": 45000,
+      "cpm": 12,
+      "stability": "High"
+    },
+    "sponsorships": {
+      "monthly_average": 85000,
+      "active_contracts": 8,
+      "contract_lengths": "6-12 months",
+      "brands": ["Nike", "Adobe", "Skillshare", "NordVPN"]
+    },
+    "merchandise": {
+      "monthly_average": 35000,
+      "margin": 0.45
+    },
+    "course_sales": {
+      "monthly_average": 60000,
+      "price_point": 299,
+      "refund_rate": 0.02
+    },
+    "patreon": {
+      "monthly_recurring": 22000,
+      "patron_count": 4400,
+      "churn_rate": 0.05
+    }
+  },
+  "financial_metrics": {
+    "total_monthly_revenue": 247000,
+    "revenue_growth_yoy": 0.35,
+    "profit_margin": 0.65,
+    "months_of_runway": 18,
+    "diversification_score": 0.85
+  },
+  "content_metrics": {
+    "content_category": "Education/Technology",
+    "audience_demographics": {
+      "age_range": "18-34",
+      "countries": ["US", "UK", "Canada", "Australia"],
+      "gender_split": "60M/40F"
+    },
+    "brand_safety": "High",
+    "controversy_history": "None",
+    "copyright_strikes": 0
+  },
+  "business_structure": {
+    "incorporated": true,
+    "entity_type": "LLC",
+    "team_size": 8,
+    "professional_management": true,
+    "accounting": "CPA firm",
+    "legal": "Entertainment lawyer"
+  }
+}

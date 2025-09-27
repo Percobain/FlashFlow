@@ -1,0 +1,46 @@
+{
+  "invoice_id": "INV-2024-0892",
+  "issue_date": "2024-03-15",
+  "due_date": "2024-04-15",
+  "vendor": {
+    "company_name": "TechCorp Solutions LLC",
+    "tax_id": "87-1234567",
+    "years_in_business": 12,
+    "address": "500 Enterprise Way, San Francisco, CA 94102",
+    "duns_number": "123456789"
+  },
+  "client": {
+    "company_name": "Fortune 500 Retailer Inc",
+    "payment_history": {
+      "total_invoices": 48,
+      "on_time_payments": 47,
+      "late_payments": 1,
+      "average_days_to_pay": 22
+    },
+    "credit_rating": "AAA",
+    "years_as_customer": 4
+  },
+  "line_items": [
+    {
+      "description": "Enterprise Software License",
+      "quantity": 100,
+      "unit_price": 150,
+      "total": 15000
+    },
+    {
+      "description": "Implementation Services",
+      "quantity": 40,
+      "unit_price": 200,
+      "total": 8000
+    }
+  ],
+  "total_amount": 23000,
+  "payment_terms": "Net 30",
+  "currency": "USD",
+  "payment_method": "ACH Transfer",
+  "contract_reference": "MSA-2020-1892",
+  "insurance_coverage": true,
+  "dispute_history": [],
+  "partial_payments_allowed": false,
+  "late_fee_percentage": 1.5
+}

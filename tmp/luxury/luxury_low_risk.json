@@ -1,0 +1,55 @@
+{
+  "rental_id": "LUX-2024-YHT-001",
+  "asset_details": {
+    "type": "Yacht",
+    "name": "Azure Dream",
+    "value": 15000000,
+    "daily_rate": 25000,
+    "location": "Monaco",
+    "year": 2022,
+    "insurance_value": 15000000
+  },
+  "renter_profile": {
+    "client_id": "VIP-8834",
+    "name": "Alexander Hamilton Trust",
+    "verification_status": "Verified",
+    "net_worth_verified": 250000000,
+    "rental_history": {
+      "total_rentals": 24,
+      "total_value": 1800000,
+      "incidents": 0,
+      "repeat_client": true,
+      "member_since": "2018"
+    },
+    "references": [
+      {"source": "Four Seasons Monaco", "rating": "Excellent"},
+      {"source": "NetJets", "rating": "Platinum Member"}
+    ]
+  },
+  "rental_terms": {
+    "start_date": "2024-06-01",
+    "end_date": "2024-06-14",
+    "total_days": 14,
+    "total_cost": 350000,
+    "security_deposit": 500000,
+    "deposit_status": "Secured",
+    "payment_method": "Wire Transfer",
+    "payment_status": "Paid in Full",
+    "advance_payment_days": 60
+  },
+  "risk_mitigation": {
+    "insurance_coverage": "Full",
+    "liability_limit": 20000000,
+    "crew_provided": true,
+    "background_check": "Completed",
+    "credit_check": "AAA",
+    "legal_entity": "Trust",
+    "jurisdiction": "Switzerland"
+  },
+  "additional_services": {
+    "concierge": true,
+    "security_detail": true,
+    "chef_service": true,
+    "helicopter_transfer": true
+  }
+}

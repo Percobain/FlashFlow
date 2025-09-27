@@ -1,0 +1,85 @@
+{
+  "creator_id": "CREATOR-RISK-9999",
+  "platform_presence": {
+    "youtube": {
+      "subscribers": 125000,
+      "average_views": 15000,
+      "engagement_rate": 0.03,
+      "channel_age_months": 8,
+      "status": "Demonetized",
+      "strikes": 2
+    },
+    "banned_platforms": ["Twitch", "TikTok"],
+    "alternative_platforms": {
+      "rumble": 45000,
+      "telegram": 30000
+    }
+  },
+  "revenue_streams": {
+    "youtube_adsense": {
+      "monthly_average": 0,
+      "status": "Suspended",
+      "reason": "Policy violations"
+    },
+    "donations": {
+      "monthly_average": 3500,
+      "platform": "Cryptocurrency",
+      "volatility": "Extreme"
+    },
+    "controversial_sponsors": {
+      "monthly_average": 5000,
+      "brands": ["Gambling sites", "Unregulated supplements"],
+      "payment_reliability": "Poor"
+    },
+    "merchandise": {
+      "monthly_average": 1500,
+      "chargebacks": 0.15
+    }
+  },
+  "financial_metrics": {
+    "total_monthly_revenue": 10000,
+    "revenue_decline_mom": -0.20,
+    "profit_margin": 0.20,
+    "months_of_runway": 0.5,
+    "debt": 45000,
+    "tax_issues": true
+  },
+  "content_metrics": {
+    "content_category": "Political/Controversial",
+    "audience_demographics": {
+      "age_range": "35-55",
+      "engagement_toxicity": "High"
+    },
+    "brand_safety": "Very Low",
+    "controversy_history": "Multiple incidents",
+    "legal_issues": [
+      "Defamation lawsuit pending",
+      "Copyright infringement claims"
+    ],
+    "community_strikes": 8
+  },
+  "risk_factors": {
+    "platform_bans": "Likely",
+    "advertiser_blacklist": true,
+    "reputation_damage": "Severe",
+    "mental_health_disclosed": true,
+    "public_feuds": 5,
+    "cancel_attempts": 3
+  },
+  "business_structure": {
+    "incorporated": false,
+    "entity_type": "None",
+    "professional_support": "None",
+    "financial_transparency": "None",
+    "audit_issues": true
+  },
+  "red_flags": [
+    "Multiple platform bans",
+    "Demonetization",
+    "Legal troubles",
+    "Toxic community",
+    "Unstable income",
+    "No business structure",
+    "Tax compliance issues"
+  ]
+}

@@ -1,0 +1,52 @@
+{
+  "invoice_id": "INV-2024-1245",
+  "issue_date": "2024-02-28",
+  "due_date": "2024-03-30",
+  "vendor": {
+    "company_name": "Digital Marketing Agency",
+    "tax_id": "92-7654321",
+    "years_in_business": 3,
+    "address": "789 Creative Blvd, Austin, TX 78701"
+  },
+  "client": {
+    "company_name": "Growing Startup Inc",
+    "payment_history": {
+      "total_invoices": 8,
+      "on_time_payments": 5,
+      "late_payments": 3,
+      "average_days_to_pay": 42
+    },
+    "credit_rating": "BB",
+    "years_as_customer": 1.5
+  },
+  "line_items": [
+    {
+      "description": "Social Media Campaign",
+      "quantity": 1,
+      "unit_price": 8500,
+      "total": 8500
+    },
+    {
+      "description": "Content Creation",
+      "quantity": 20,
+      "unit_price": 350,
+      "total": 7000
+    }
+  ],
+  "total_amount": 15500,
+  "payment_terms": "Net 30",
+  "currency": "USD",
+  "payment_method": "Credit Card",
+  "contract_reference": null,
+  "insurance_coverage": false,
+  "dispute_history": [
+    {
+      "date": "2023-11-15",
+      "amount": 2000,
+      "resolved": true
+    }
+  ],
+  "partial_payments_allowed": true,
+  "late_fee_percentage": 2.5,
+  "outstanding_balance": 3200
+}

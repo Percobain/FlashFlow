@@ -1,0 +1,47 @@
+{
+  "invoice_id": "INV-2024-3891",
+  "issue_date": "2024-03-01",
+  "due_date": "2024-03-15",
+  "vendor": {
+    "company_name": "Freelance Consultant",
+    "tax_id": "Individual-SSN",
+    "years_in_business": 0.5,
+    "address": "PO Box 123, Newark, NJ 07101"
+  },
+  "client": {
+    "company_name": "Unknown Overseas Trading Co",
+    "payment_history": {
+      "total_invoices": 0,
+      "on_time_payments": 0,
+      "late_payments": 0,
+      "average_days_to_pay": null
+    },
+    "credit_rating": "Not Available",
+    "years_as_customer": 0,
+    "country": "Cayman Islands"
+  },
+  "line_items": [
+    {
+      "description": "Consulting Services",
+      "quantity": 1,
+      "unit_price": 75000,
+      "total": 75000
+    }
+  ],
+  "total_amount": 75000,
+  "payment_terms": "Due on Receipt",
+  "currency": "USD",
+  "payment_method": "Wire Transfer",
+  "contract_reference": null,
+  "insurance_coverage": false,
+  "dispute_history": [],
+  "partial_payments_allowed": false,
+  "late_fee_percentage": 5,
+  "red_flags": [
+    "First transaction",
+    "No verifiable address",
+    "Large amount for first invoice",
+    "Offshore entity",
+    "Rush payment terms"
+  ]
+}

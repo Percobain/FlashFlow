@@ -1,0 +1,58 @@
+{
+  "customer_id": "CUST-GROW-3421",
+  "company_name": "AI Innovation Labs",
+  "subscription_details": {
+    "plan": "Growth",
+    "monthly_recurring_revenue": 5000,
+    "annual_contract_value": 60000,
+    "start_date": "2023-09-01",
+    "contract_length_months": 12,
+    "auto_renewal": true,
+    "expansion_history": [
+      {"date": "2023-09-01", "mrr": 1000},
+      {"date": "2023-12-01", "mrr": 2500},
+      {"date": "2024-02-01", "mrr": 5000}
+    ]
+  },
+  "payment_metrics": {
+    "payment_method": "ACH Transfer",
+    "payment_frequency": "Monthly",
+    "failed_payments": 0,
+    "lifetime_value": 30000,
+    "months_as_customer": 6,
+    "churn_probability": 0.15,
+    "net_revenue_retention": 2.5
+  },
+  "usage_metrics": {
+    "monthly_active_users": 75,
+    "daily_active_users": 68,
+    "feature_adoption_rate": 0.88,
+    "support_tickets_monthly": 8,
+    "last_login": "2024-03-15",
+    "api_calls_monthly": 1500000,
+    "seat_utilization": 0.95,
+    "usage_growth_rate": 0.40
+  },
+  "account_health": {
+    "health_score": 88,
+    "nps_score": 10,
+    "customer_success_engagement": "Very High",
+    "executive_sponsor": true,
+    "champions_count": 12,
+    "expansion_potential": "Very High",
+    "recent_wins": [
+      "Case study published",
+      "Referral provided",
+      "Speaking at conference"
+    ]
+  },
+  "financials": {
+    "company_revenue": 25000000,
+    "employee_count": 120,
+    "industry": "Artificial Intelligence",
+    "public_company": false,
+    "funding_stage": "Series B",
+    "last_funding_amount": 50000000,
+    "growth_rate": 3.5
+  }
+}

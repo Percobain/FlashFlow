@@ -1,0 +1,51 @@
+{
+  "customer_id": "CUST-MID-8923",
+  "company_name": "Regional Marketing Agency",
+  "subscription_details": {
+    "plan": "Professional",
+    "monthly_recurring_revenue": 2500,
+    "annual_contract_value": 30000,
+    "start_date": "2023-03-01",
+    "contract_length_months": 12,
+    "auto_renewal": false,
+    "renewal_date": "2024-03-01"
+  },
+  "payment_metrics": {
+    "payment_method": "Credit Card",
+    "payment_frequency": "Monthly",
+    "failed_payments": 2,
+    "lifetime_value": 30000,
+    "months_as_customer": 12,
+    "churn_probability": 0.35,
+    "discount_applied": 0.15
+  },
+  "usage_metrics": {
+    "monthly_active_users": 15,
+    "daily_active_users": 8,
+    "feature_adoption_rate": 0.45,
+    "support_tickets_monthly": 12,
+    "last_login": "2024-02-28",
+    "api_calls_monthly": 50000,
+    "seat_utilization": 0.60
+  },
+  "account_health": {
+    "health_score": 62,
+    "nps_score": 6,
+    "customer_success_engagement": "Medium",
+    "executive_sponsor": false,
+    "champions_count": 2,
+    "expansion_potential": "Low",
+    "at_risk_indicators": [
+      "Declining usage",
+      "No executive buy-in",
+      "Competitive evaluation ongoing"
+    ]
+  },
+  "financials": {
+    "company_revenue": 8000000,
+    "employee_count": 45,
+    "industry": "Marketing",
+    "public_company": false,
+    "funding_stage": "Series A"
+  }
+}

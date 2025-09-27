@@ -1,0 +1,59 @@
+{
+  "customer_id": "CUST-MIX-6745",
+  "company_name": "Retail Chain Corporation",
+  "subscription_details": {
+    "plan": "Enterprise",
+    "monthly_recurring_revenue": 15000,
+    "annual_contract_value": 180000,
+    "start_date": "2022-06-01",
+    "contract_length_months": 24,
+    "auto_renewal": true,
+    "mid_contract_negotiation": true
+  },
+  "payment_metrics": {
+    "payment_method": "Invoice",
+    "payment_frequency": "Quarterly",
+    "failed_payments": 1,
+    "lifetime_value": 360000,
+    "months_as_customer": 21,
+    "churn_probability": 0.45,
+    "payment_terms": "Net 45"
+  },
+  "usage_metrics": {
+    "monthly_active_users": 89,
+    "daily_active_users": 45,
+    "feature_adoption_rate": 0.35,
+    "support_tickets_monthly": 45,
+    "last_login": "2024-03-14",
+    "api_calls_monthly": 750000,
+    "seat_utilization": 0.35,
+    "licenses_purchased": 250,
+    "licenses_active": 89
+  },
+  "account_health": {
+    "health_score": 58,
+    "nps_score": 5,
+    "customer_success_engagement": "Declining",
+    "executive_sponsor": true,
+    "champions_count": 3,
+    "expansion_potential": "Medium",
+    "at_risk_indicators": [
+      "Low adoption rate",
+      "Competitor mentioned",
+      "Budget constraints voiced"
+    ],
+    "positive_indicators": [
+      "Long contract term",
+      "Executive sponsor engaged",
+      "Strategic account"
+    ]
+  },
+  "financials": {
+    "company_revenue": 500000000,
+    "employee_count": 2500,
+    "industry": "Retail",
+    "public_company": true,
+    "stock_performance": "Declining",
+    "recent_layoffs": true
+  }
+}

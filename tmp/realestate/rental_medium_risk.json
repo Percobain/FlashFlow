@@ -1,0 +1,67 @@
+{
+  "lease_id": "LEASE-2024-HSE-2234",
+  "property_details": {
+    "address": "456 Oak Street, Austin, TX 78704",
+    "type": "Single Family Home",
+    "bedrooms": 3,
+    "bathrooms": 2,
+    "square_feet": 1800,
+    "monthly_rent": 2800,
+    "market_rent": 2750,
+    "year_built": 1995,
+    "condition": "Good",
+    "hoa_fee": 150
+  },
+  "tenant_profile": {
+    "name": "Michael Rivera",
+    "occupation": "Freelance Consultant",
+    "employer": "Self-Employed",
+    "annual_income": 75000,
+    "income_verification": "Bank Statements",
+    "income_variability": "High",
+    "credit_score": 680,
+    "rental_history": {
+      "previous_landlord": "Individual Landlord",
+      "previous_rent": 2200,
+      "tenure_years": 1.5,
+      "late_payments": 3,
+      "evictions": 0,
+      "reference_rating": "Good",
+      "moved_reason": "Lease not renewed"
+    },
+    "background_check": "Minor traffic violations",
+    "self_employed_years": 2
+  },
+  "lease_terms": {
+    "start_date": "2024-03-15",
+    "end_date": "2025-03-14",
+    "lease_length_months": 12,
+    "security_deposit": 4200,
+    "first_month_paid": true,
+    "last_month_paid": false,
+    "rent_to_income_ratio": 0.45,
+    "guarantor": "Parent Co-signer",
+    "guarantor_income": 120000
+  },
+  "financial_metrics": {
+    "payment_method": "Check",
+    "bank_account_average": 15000,
+    "insurance": "Pending Verification",
+    "tax_returns_provided": true,
+    "business_license": "Valid"
+  },
+  "risk_assessment": {
+    "risk_score": 55,
+    "concerns": [
+      "Variable income",
+      "High rent-to-income ratio",
+      "Previous late payments",
+      "Short self-employment history"
+    ],
+    "mitigating_factors": [
+      "Guarantor available",
+      "Decent credit score",
+      "No evictions"
+    ]
+  }
+}

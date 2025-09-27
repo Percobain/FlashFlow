@@ -1,0 +1,73 @@
+{
+  "lease_id": "LEASE-2024-STU-9876",
+  "property_details": {
+    "address": "789 College Avenue, Unit 4, Columbus, OH 43201",
+    "type": "Student Housing Unit",
+    "bedrooms": 4,
+    "bathrooms": 2,
+    "square_feet": 1200,
+    "monthly_rent": 2000,
+    "market_rent": 1900,
+    "year_built": 1975,
+    "condition": "Fair",
+    "near_campus": true
+  },
+  "tenant_profile": {
+    "name": "Group Lease - 4 Students",
+    "primary_applicant": "Jake Thompson",
+    "occupation": "Student",
+    "employer": "Part-time Retail",
+    "annual_income": 12000,
+    "income_verification": "Unverified",
+    "credit_score": 580,
+    "rental_history": {
+      "previous_landlord": "Campus Dorms",
+      "previous_rent": 0,
+      "tenure_years": 0,
+      "late_payments": 0,
+      "evictions": 0,
+      "reference_rating": "No History",
+      "first_time_renter": true
+    },
+    "background_check": "Incomplete",
+    "co_tenants_verified": false
+  },
+  "lease_terms": {
+    "start_date": "2024-08-01",
+    "end_date": "2025-07-31",
+    "lease_length_months": 12,
+    "security_deposit": 1000,
+    "first_month_paid": false,
+    "last_month_paid": false,
+    "rent_to_income_ratio": 1.67,
+    "guarantor": "None Provided",
+    "payment_plan_requested": true
+  },
+  "financial_metrics": {
+    "payment_method": "Venmo Requested",
+    "bank_account_verified": false,
+    "insurance": "Not Provided",
+    "parent_income": "Refused to Provide",
+    "financial_aid": "Unverified"
+  },
+  "risk_assessment": {
+    "risk_score": 85,
+    "red_flags": [
+      "No rental history",
+      "Very low income",
+      "Poor credit score",
+      "No guarantor",
+      "Incomplete application",
+      "Unverified co-tenants",
+      "Requesting payment plan",
+      "Below minimum deposit"
+    ],
+    "property_risks": [
+      "Party damage likely",
+      "Noise complaints expected",
+      "Maintenance issues probable",
+      "Turnover risk high"
+    ]
+  },
+  "application_status": "Pending - High Risk"
+}

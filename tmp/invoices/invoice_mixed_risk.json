@@ -1,0 +1,56 @@
+{
+  "invoice_id": "INV-2024-2156",
+  "issue_date": "2024-02-20",
+  "due_date": "2024-04-20",
+  "vendor": {
+    "company_name": "Industrial Supply Corp",
+    "tax_id": "54-9876543",
+    "years_in_business": 25,
+    "address": "100 Industrial Park, Detroit, MI 48201",
+    "certifications": ["ISO 9001", "SOC 2"]
+  },
+  "client": {
+    "company_name": "Construction Dynamics LLC",
+    "payment_history": {
+      "total_invoices": 15,
+      "on_time_payments": 8,
+      "late_payments": 7,
+      "average_days_to_pay": 55,
+      "longest_delay": 120
+    },
+    "credit_rating": "B-",
+    "years_as_customer": 2,
+    "pending_litigation": true
+  },
+  "line_items": [
+    {
+      "description": "Heavy Machinery Parts",
+      "quantity": 50,
+      "unit_price": 450,
+      "total": 22500
+    },
+    {
+      "description": "Emergency Shipping",
+      "quantity": 1,
+      "unit_price": 2500,
+      "total": 2500
+    }
+  ],
+  "total_amount": 25000,
+  "payment_terms": "Net 60",
+  "currency": "USD",
+  "payment_method": "Check",
+  "contract_reference": "PO-2024-8912",
+  "insurance_coverage": true,
+  "dispute_history": [
+    {
+      "date": "2023-08-10",
+      "amount": 5000,
+      "resolved": false
+    }
+  ],
+  "partial_payments_allowed": true,
+  "collections_status": "Second Notice Sent",
+  "credit_limit": 30000,
+  "current_exposure": 48000
+}

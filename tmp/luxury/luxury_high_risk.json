@@ -1,0 +1,64 @@
+{
+  "rental_id": "LUX-2024-JET-888",
+  "asset_details": {
+    "type": "Private Jet",
+    "name": "Gulfstream G650",
+    "value": 65000000,
+    "hourly_rate": 10000,
+    "location": "Dubai",
+    "year": 2020,
+    "flight_hours": 1200,
+    "insurance_value": 65000000
+  },
+  "renter_profile": {
+    "client_id": "TEMP-2024-999",
+    "name": "International Holdings Group",
+    "verification_status": "Unverified",
+    "claimed_net_worth": 500000000,
+    "rental_history": {
+      "total_rentals": 0,
+      "total_value": 0,
+      "incidents": 0,
+      "repeat_client": false,
+      "member_since": null
+    },
+    "country_of_origin": "Unknown",
+    "payment_source": "Offshore Account",
+    "beneficial_owner": "Not Disclosed"
+  },
+  "rental_terms": {
+    "start_date": "2024-03-20",
+    "end_date": "2024-03-21",
+    "total_hours": 8,
+    "total_cost": 80000,
+    "security_deposit": 0,
+    "deposit_status": "Not Required",
+    "payment_method": "Cryptocurrency",
+    "payment_status": "Pending",
+    "advance_payment_days": 1
+  },
+  "risk_mitigation": {
+    "insurance_coverage": "None",
+    "liability_limit": 0,
+    "background_check": "Failed",
+    "credit_check": "Not Available",
+    "aml_check": "Red Flags",
+    "sanctions_check": "Pending"
+  },
+  "red_flags": [
+    "Rush booking",
+    "No verifiable identity",
+    "Cryptocurrency payment only",
+    "Destination: Restricted Country",
+    "No insurance accepted",
+    "Single-use email",
+    "VPN connection detected",
+    "Refused video verification"
+  ],
+  "flight_plan": {
+    "origin": "Dubai",
+    "destination": "Undisclosed",
+    "passengers": "Unknown",
+    "cargo": "Not Declared"
+  }
+}

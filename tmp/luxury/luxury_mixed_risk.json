@@ -1,0 +1,72 @@
+{
+  "rental_id": "LUX-2024-VIL-234",
+  "asset_details": {
+    "type": "Luxury Villa",
+    "name": "Sunset Estate Malibu",
+    "value": 45000000,
+    "weekly_rate": 75000,
+    "location": "Malibu, California",
+    "bedrooms": 8,
+    "square_feet": 15000,
+    "insurance_value": 45000000
+  },
+  "renter_profile": {
+    "client_id": "CEL-5567",
+    "name": "Entertainment Productions Inc",
+    "verification_status": "Verified",
+    "net_worth_verified": 80000000,
+    "rental_history": {
+      "total_rentals": 12,
+      "total_value": 890000,
+      "incidents": 3,
+      "incident_details": [
+        "Noise complaints - fined",
+        "Property damage - $50000",
+        "Unauthorized guests - warning"
+      ],
+      "repeat_client": true,
+      "member_since": "2021"
+    },
+    "celebrity_status": true,
+    "publicity_risk": "High"
+  },
+  "rental_terms": {
+    "start_date": "2024-07-01",
+    "end_date": "2024-07-31",
+    "total_days": 30,
+    "total_cost": 300000,
+    "security_deposit": 500000,
+    "deposit_status": "Secured",
+    "payment_method": "Business Account",
+    "payment_status": "50% Paid",
+    "event_planned": "Film Production"
+  },
+  "risk_mitigation": {
+    "insurance_coverage": "Enhanced",
+    "liability_limit": 10000000,
+    "security_service": "24/7",
+    "property_manager": "On-site",
+    "background_check": "Completed",
+    "credit_check": "A-",
+    "legal_review": "Contract Modified",
+    "noise_monitoring": true
+  },
+  "special_conditions": {
+    "max_occupancy": 20,
+    "party_restrictions": "No events over 50 people",
+    "quiet_hours": "10 PM - 8 AM",
+    "damage_waiver": false,
+    "media_restrictions": "No commercial photography",
+    "neighbor_notification": true
+  },
+  "positive_factors": [
+    "High profile booking",
+    "Potential PR value",
+    "Long-term rental"
+  ],
+  "risk_factors": [
+    "Previous incidents",
+    "Media attention",
+    "Party likelihood"
+  ]
+}

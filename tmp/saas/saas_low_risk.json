@@ -1,0 +1,43 @@
+{
+  "customer_id": "CUST-ENT-4521",
+  "company_name": "Global Financial Services Inc",
+  "subscription_details": {
+    "plan": "Enterprise",
+    "monthly_recurring_revenue": 25000,
+    "annual_contract_value": 300000,
+    "start_date": "2020-01-15",
+    "contract_length_months": 36,
+    "auto_renewal": true
+  },
+  "payment_metrics": {
+    "payment_method": "ACH Transfer",
+    "payment_frequency": "Annual",
+    "failed_payments": 0,
+    "lifetime_value": 1200000,
+    "months_as_customer": 48,
+    "churn_probability": 0.02
+  },
+  "usage_metrics": {
+    "monthly_active_users": 450,
+    "daily_active_users": 380,
+    "feature_adoption_rate": 0.92,
+    "support_tickets_monthly": 3,
+    "last_login": "2024-03-15",
+    "api_calls_monthly": 2500000
+  },
+  "account_health": {
+    "health_score": 95,
+    "nps_score": 9,
+    "customer_success_engagement": "High",
+    "executive_sponsor": true,
+    "champions_count": 8,
+    "expansion_potential": "High"
+  },
+  "financials": {
+    "company_revenue": 5000000000,
+    "employee_count": 15000,
+    "industry": "Financial Services",
+    "public_company": true,
+    "credit_rating": "AA+"
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "rental_id": "LUX-2024-CAR-445",
+  "asset_details": {
+    "type": "Supercar",
+    "name": "Ferrari SF90 Stradale",
+    "value": 650000,
+    "daily_rate": 3500,
+    "location": "Miami",
+    "year": 2023,
+    "mileage": 2500,
+    "insurance_value": 650000
+  },
+  "renter_profile": {
+    "client_id": "NEW-2024-112",
+    "name": "Tech Entrepreneur LLC",
+    "verification_status": "Partially Verified",
+    "estimated_net_worth": 15000000,
+    "rental_history": {
+      "total_rentals": 2,
+      "total_value": 25000,
+      "incidents": 1,
+      "incident_details": "Minor scratch - paid deductible",
+      "repeat_client": false,
+      "member_since": "2024"
+    },
+    "age": 28,
+    "social_media_verified": true,
+    "influencer_status": "500K followers"
+  },
+  "rental_terms": {
+    "start_date": "2024-04-15",
+    "end_date": "2024-04-22",
+    "total_days": 7,
+    "total_cost": 24500,
+    "security_deposit": 50000,
+    "deposit_status": "Pending",
+    "payment_method": "Credit Card",
+    "payment_status": "Authorized",
+    "advance_payment_days": 7
+  },
+  "risk_mitigation": {
+    "insurance_coverage": "Standard",
+    "liability_limit": 100000,
+    "deductible": 10000,
+    "gps_tracking": true,
+    "speed_limiter": false,
+    "background_check": "Basic",
+    "credit_check": "B+",
+    "driving_record": "2 speeding tickets"
+  },
+  "restrictions": {
+    "geographic_limit": "Florida only",
+    "mileage_limit": 1000,
+    "event_usage": true,
+    "valet_mode": true
+  }
+}

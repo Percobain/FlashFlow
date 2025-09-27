@@ -1,0 +1,93 @@
+{
+  "creator_id": "CREATOR-POD-4456",
+  "platform_presence": {
+    "podcast": {
+      "name": "Tech Insights Weekly",
+      "monthly_downloads": 850000,
+      "episodes": 245,
+      "frequency": "2x per week",
+      "average_duration": 45,
+      "platform_distribution": {
+        "spotify": 0.45,
+        "apple": 0.35,
+        "youtube": 0.20
+      }
+    },
+    "youtube": {
+      "subscribers": 325000,
+      "podcast_clips": true,
+      "average_views": 45000
+    },
+    "twitter": {
+      "followers": 89000,
+      "spaces_host": true
+    },
+    "newsletter": {
+      "subscribers": 45000,
+      "open_rate": 0.42
+    }
+  },
+  "revenue_streams": {
+    "podcast_ads": {
+      "monthly_average": 32000,
+      "cpm": 35,
+      "advertisers": ["Squarespace", "BetterHelp", "Audible"],
+      "direct_sales": true
+    },
+    "patreon": {
+      "monthly_recurring": 18500,
+      "patron_count": 2100,
+      "tiers": [5, 10, 25, 100],
+      "exclusive_content": "Bonus episodes"
+    },
+    "speaking_engagements": {
+      "monthly_average": 15000,
+      "events_per_month": 2,
+      "rate": 7500
+    },
+    "consulting": {
+      "monthly_average": 25000,
+      "clients": 3,
+      "hourly_rate": 500
+    },
+    "book_sales": {
+      "monthly_average": 8000,
+      "title": "The Future of Tech",
+      "publisher": "Self-published"
+    }
+  },
+  "financial_metrics": {
+    "total_monthly_revenue": 98500,
+    "revenue_growth_yoy": 0.65,
+    "profit_margin": 0.70,
+    "production_costs": 8000,
+    "diversification_score": 0.75
+  },
+  "content_metrics": {
+    "content_category": "Technology/Business",
+    "audience_demographics": {
+      "age_range": "25-45",
+      "education": "College+",
+      "income": "75K+",
+      "b2b_percentage": 0.40
+    },
+    "guest_caliber": "Industry leaders",
+    "content_evergreen": true,
+    "back_catalog_value": "High"
+  },
+  "growth_indicators": {
+    "download_growth": 0.15,
+    "audience_retention": 0.85,
+    "word_of_mouth": "Strong",
+    "seo_ranking": "Page 1 for key terms",
+    "network_effects": "Building"
+  },
+  "business_structure": {
+    "incorporated": true,
+    "entity_type": "S-Corp",
+    "team_size": 4,
+    "roles": ["Producer", "Editor", "Researcher", "Ad Sales"],
+    "studio": "Professional setup",
+    "equipment_value": 35000
+  }
+}

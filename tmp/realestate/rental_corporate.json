@@ -1,0 +1,68 @@
+{
+  "lease_id": "LEASE-2024-CORP-8821",
+  "property_details": {
+    "address": "800 Lakeshore Drive, Chicago, IL 60611",
+    "type": "Corporate Housing - Furnished",
+    "bedrooms": 2,
+    "bathrooms": 2,
+    "square_feet": 1650,
+    "monthly_rent": 6500,
+    "market_rent": 6000,
+    "furnished_premium": 500,
+    "view": "Lake Michigan",
+    "building_class": "A"
+  },
+  "tenant_profile": {
+    "name": "McKinsey & Company",
+    "tenant_type": "Corporate Lease",
+    "occupant": "Rotating Consultants",
+    "company_revenue": 12000000000,
+    "credit_rating": "AAA",
+    "rental_history": {
+      "properties_leased": 450,
+      "average_tenure": 18,
+      "late_payments": 0,
+      "damages_claimed": 2,
+      "reference_rating": "Excellent"
+    },
+    "master_agreement": true,
+    "insurance_certificate": "On File"
+  },
+  "lease_terms": {
+    "start_date": "2024-01-01",
+    "end_date": "2025-12-31",
+    "lease_length_months": 24,
+    "security_deposit": 13000,
+    "payment_terms": "Net 30 Invoice",
+    "early_termination_clause": "60 days notice",
+    "occupant_changes_allowed": true
+  },
+  "financial_metrics": {
+    "payment_method": "Corporate ACH",
+    "payment_processor": "Accounts Payable Dept",
+    "historical_payment_speed": 25,
+    "insurance": "Commercial Policy 10M",
+    "additional_coverage": "Business liability"
+  },
+  "risk_assessment": {
+    "risk_score": 10,
+    "strengths": [
+      "Fortune 500 company",
+      "Master agreement",
+      "Excellent payment history",
+      "High insurance coverage",
+      "Professional property management"
+    ],
+    "considerations": [
+      "High tenant turnover",
+      "Premium rent expectations",
+      "24/7 maintenance expectations"
+    ]
+  },
+  "special_services": {
+    "cleaning": "Weekly",
+    "maintenance_priority": "24-hour response",
+    "concierge": true,
+    "utilities_included": true
+  }
+}
