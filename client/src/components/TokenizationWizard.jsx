@@ -992,10 +992,63 @@ const AnalysisStep = ({
     const [analysis, setAnalysis] = useState(null);
     const [analysisStage, setAnalysisStage] = useState("processing");
 
+    // Debug: Log when analysis state changes
+    useEffect(() => {
+        console.log("🔍 Analysis state changed:", analysis);
+    }, [analysis]);
+
     useEffect(() => {
         const runAnalysis = async () => {
             if (!currentFlow.uploadedFiles?.length) {
-                console.log('No documents to analyze');
+                console.log(
+                    "No documents to analyze, using sample data for demo"
+                );
+
+                // Use sample data for analysis instead of just mock
+                const sampleData = getSampleDataForAnalysis(currentFlow.type);
+
+                try {
+                    const response = await backendService.analyzeAssetWithAI({
+                        type: currentFlow.type,
+                        documents: [],
+                        data: sampleData,
+                        metadata: {
+                            description: `Sample ${currentFlow.type} analysis`,
+                            amount:
+                                sampleData.total_amount ||
+                                sampleData.totalValue ||
+                                sampleData.totalMRR ||
+                                50000,
+                            originator: account,
+                            ...sampleData,
+                        },
+                    });
+
+                    const analysisResult = response.success
+                        ? response.analysis
+                        : response;
+                    console.log(
+                        "✅ Sample data analysis completed:",
+                        analysisResult
+                    );
+
+                    if (
+                        analysisResult &&
+                        (analysisResult.riskScore || analysisResult.score)
+                    ) {
+                        setAnalysis(analysisResult);
+                        setCurrentFlow({ analysis: analysisResult });
+                    } else {
+                        throw new Error("Invalid analysis result");
+                    }
+                } catch (error) {
+                    console.log("Sample analysis failed, using mock:", error);
+                    const mockAnalysis = generateMockAnalysis(currentFlow.type);
+                    setAnalysis(mockAnalysis);
+                    setCurrentFlow({ analysis: mockAnalysis });
+                }
+
+                setAnalyzing(false);
                 return;
             }
 
@@ -1003,41 +1056,125 @@ const AnalysisStep = ({
             setAnalysisStage("processing");
 
             try {
-                console.log('🔍 Starting analysis...');
-                
+                console.log("🔍 Starting analysis...");
+
                 // Try AI analysis first
                 let analysisResult;
                 try {
-                    analysisResult = await backendService.analyzeAssetWithAI({
+                    // Extract data from uploaded files if available
+                    let extractedData = {};
+                    if (currentFlow.uploadedFiles?.length > 0) {
+                        const firstFile = currentFlow.uploadedFiles[0];
+                        if (firstFile.data) {
+                            extractedData = firstFile.data;
+                        }
+                    }
+
+                    const response = await backendService.analyzeAssetWithAI({
                         type: currentFlow.type,
-                        documents: currentFlow.uploadedFiles,
+                        documents: currentFlow.uploadedFiles || [],
+                        data: extractedData, // Include extracted file data
                         metadata: {
                             description: currentFlow.type,
-                            amount: 10000, // Placeholder, actual amount will be set later
-                            paymentTerms: "Net 30", // Placeholder
-                            originator: account
-                        }
+                            amount:
+                                extractedData.total_amount ||
+                                extractedData.totalValue ||
+                                10000,
+                            paymentTerms:
+                                extractedData.payment_terms || "Net 30",
+                            originator: account,
+                            vendor: extractedData.vendor,
+                            client: extractedData.client,
+                            ...extractedData, // Include all extracted data
+                        },
                     });
-                    console.log('✅ AI analysis completed:', analysisResult);
+
+                    // Extract analysis from response
+                    console.log("🔍 Raw API response:", response);
+                    analysisResult = response.success
+                        ? response.analysis
+                        : response;
+                    console.log("✅ AI analysis completed:", analysisResult);
+                    console.log("📊 Analysis fields:", {
+                        riskScore: analysisResult?.riskScore,
+                        score: analysisResult?.score,
+                        confidence: analysisResult?.confidence,
+                        estimatedValue: analysisResult?.estimatedValue,
+                        projectedROI: analysisResult?.projectedROI,
+                        basketId: analysisResult?.basketId,
+                    });
                 } catch (aiError) {
-                    console.log('AI-enhanced analysis failed:', aiError);
-                    
+                    console.log("AI-enhanced analysis failed:", aiError);
+
                     // Fallback to simple analysis
-                    console.log('🔄 Using fallback analysis...');
+                    console.log("🔄 Using fallback analysis...");
+                    const fallbackRiskScore =
+                        Math.floor(Math.random() * 40) + 60; // 60-99
                     analysisResult = {
-                        riskScore: Math.floor(Math.random() * 40) + 60, // 60-99
-                        confidence: 0.8,
-                        factors: ['Document format verified', 'Basic validation passed'],
-                        recommendation: 'APPROVE',
-                        basketId: 'medium-risk'
+                        riskScore: fallbackRiskScore,
+                        score: fallbackRiskScore, // Include both for compatibility
+                        confidence: 80,
+                        factors: [
+                            "Document format verified",
+                            "Basic validation passed",
+                            "Risk assessment completed",
+                        ],
+                        estimatedValue: 50000,
+                        recommendedAdvance: 0.75,
+                        projectedROI: "7.5",
+                        recommendation: "APPROVE",
+                        basketId:
+                            fallbackRiskScore >= 80
+                                ? "medium-low-risk"
+                                : "medium-risk",
+                        reasoning:
+                            "Automated analysis based on document structure and basic validation",
+                        metadata: {
+                            dataPoints: 3,
+                            processingTime: 1.0,
+                            algorithmVersion: "fallback-1.0",
+                        },
                     };
+                    console.log(
+                        "📊 Fallback analysis created:",
+                        analysisResult
+                    );
                 }
 
-                setAnalysis(analysisResult);
-                setCurrentFlow({ analysis: analysisResult });
-                
+                // Ensure we have the required fields
+                console.log("🔍 Checking analysis result:", analysisResult);
+                console.log("🔍 Has riskScore:", analysisResult?.riskScore);
+                console.log("🔍 Has score:", analysisResult?.score);
+
+                if (
+                    analysisResult &&
+                    (analysisResult.riskScore || analysisResult.score)
+                ) {
+                    console.log("📊 Setting analysis data:", analysisResult);
+                    setAnalysis(analysisResult);
+                    setCurrentFlow({ analysis: analysisResult });
+
+                    // Verify state was set
+                    setTimeout(() => {
+                        console.log(
+                            "🔍 Analysis state after setting:",
+                            analysisResult
+                        );
+                    }, 100);
+                } else {
+                    console.warn("⚠️ Invalid analysis result, using fallback");
+                    const fallbackAnalysis = generateMockAnalysis(
+                        currentFlow.type
+                    );
+                    console.log(
+                        "📊 Generated fallback analysis:",
+                        fallbackAnalysis
+                    );
+                    setAnalysis(fallbackAnalysis);
+                    setCurrentFlow({ analysis: fallbackAnalysis });
+                }
             } catch (error) {
-                console.error('Analysis failed completely:', error);
+                console.error("Analysis failed completely:", error);
                 // Generate basic mock analysis as last resort
                 const mockAnalysis = generateMockAnalysis(currentFlow.type);
                 setAnalysis(mockAnalysis);
@@ -1048,7 +1185,7 @@ const AnalysisStep = ({
         };
 
         runAnalysis();
-    }, [currentFlow.uploadedFiles, account]);
+    }, [currentFlow.uploadedFiles, account, currentFlow.type]);
 
     const getSampleDataForAnalysis = (type) => {
         const samples = {
@@ -1122,8 +1259,15 @@ const AnalysisStep = ({
 
     const generateMockAnalysis = (type) => {
         const riskScore = Math.floor(Math.random() * 30) + 65;
+        const estimatedValue = Math.floor(Math.random() * 100000) + 50000;
+        const recommendedAdvance = 0.8;
+        const projectedROI = Math.min((100 - riskScore) * 0.1 + 5, 9.5).toFixed(
+            1
+        );
+
         return {
-            score: riskScore,
+            riskScore: riskScore,
+            score: riskScore, // Include both for compatibility
             confidence: Math.floor(Math.random() * 20) + 80,
             factors: [
                 "Strong payment history detected",
@@ -1132,10 +1276,27 @@ const AnalysisStep = ({
                 "Compliant documentation",
                 "Low default risk indicators",
             ],
-            estimatedValue: Math.floor(Math.random() * 100000) + 50000,
-            recommendedAdvance: 0.8,
-            projectedROI: ((100 - riskScore) * 0.3 + 8).toFixed(1),
+            estimatedValue: estimatedValue,
+            recommendedAdvance: recommendedAdvance,
+            projectedROI: projectedROI,
+            reasoning: `Mock analysis for ${type} asset - automated risk assessment completed with ${riskScore}% risk score`,
+            recommendation: riskScore > 70 ? "APPROVE" : "REVIEW",
+            basketId:
+                riskScore >= 90
+                    ? "low-risk"
+                    : riskScore >= 80
+                    ? "medium-low-risk"
+                    : riskScore >= 65
+                    ? "medium-risk"
+                    : riskScore >= 50
+                    ? "medium-high-risk"
+                    : "high-risk",
             aiEnhanced: false,
+            metadata: {
+                dataPoints: 5,
+                processingTime: 1.2,
+                algorithmVersion: "mock-1.0",
+            },
         };
     };
 
@@ -1191,19 +1352,67 @@ const AnalysisStep = ({
                         Here's what our AI discovered about your cash flow
                     </p>
                 </div>
-
-                {analysis && (
-                    <div className="space-y-6">
-                        {/* Risk Score Display */}
-                        <div className="text-center">
-                            <div className="text-3xl font-bold text-purple-400">
-                                {analysis?.riskScore || 0}%
-                            </div>
-                            <div className="text-sm text-gray-400">Risk Score</div>
+                <div className="space-y-6">
+                    {/* Debug info - always show for debugging */}
+                    <div className="text-xs text-gray-500 p-2 bg-gray-800 rounded">
+                        <div>
+                            Analysis object exists: {analysis ? "YES" : "NO"}
                         </div>
+                        <div>
+                            Risk Score:{" "}
+                            {analysis?.riskScore ||
+                                analysis?.score ||
+                                "MISSING"}
+                        </div>
+                        <div>
+                            Confidence: {analysis?.confidence || "MISSING"}
+                        </div>
+                        <div>
+                            Estimated Value:{" "}
+                            {analysis?.estimatedValue || "MISSING"}
+                        </div>
+                        <div>
+                            Projected ROI: {analysis?.projectedROI || "MISSING"}
+                        </div>
+                        <div>Basket ID: {analysis?.basketId || "MISSING"}</div>
+                        <button
+                            onClick={() => {
+                                const testAnalysis = {
+                                    riskScore: 75,
+                                    score: 75,
+                                    confidence: 85,
+                                    estimatedValue: 50000,
+                                    recommendedAdvance: 0.75,
+                                    projectedROI: "7.5",
+                                    basketId: "medium-risk",
+                                    factors: ["Test factor 1", "Test factor 2"],
+                                    reasoning: "Test analysis data",
+                                };
+                                console.log(
+                                    "🧪 Setting test analysis:",
+                                    testAnalysis
+                                );
+                                setAnalysis(testAnalysis);
+                            }}
+                            className="bg-blue-500 text-white px-2 py-1 rounded text-xs mr-2"
+                        >
+                            Test Analysis
+                        </button>
+                        <div>
+                            Full object: {JSON.stringify(analysis, null, 2)}
+                        </div>
+                    </div>
 
-                        {/* Recommendation */}
-                        {/* <div className="flex items-center justify-center space-x-2">
+                    {/* Risk Score Display */}
+                    <div className="text-center">
+                        <div className="text-3xl font-bold text-purple-400">
+                            {analysis?.riskScore || analysis?.score || 0}
+                        </div>
+                        <div className="text-sm text-gray-400">Risk Score</div>
+                    </div>
+
+                    {/* Recommendation */}
+                    {/* <div className="flex items-center justify-center space-x-2">
                             <Badge 
                                 variant={
                                     (analysis?.recommendation || 'REVIEW') === 'APPROVE' ? 'success' : 
@@ -1214,20 +1423,50 @@ const AnalysisStep = ({
                             </Badge>
                         </div> */}
 
-                        {/* Reasoning */}
-                        {analysis?.reasoning && (
-                            <div className="mt-4 p-4 bg-gray-800/50 rounded-lg">
-                                <h5 className="font-medium mb-2">AI Analysis</h5>
-                                <p className="text-sm text-gray-300">{analysis.reasoning}</p>
-                            </div>
-                        )}
+                    {/* Reasoning */}
+                    {analysis?.reasoning && (
+                        <div className="mt-4 p-4 bg-gray-800/50 rounded-lg">
+                            <h5 className="font-medium mb-2">AI Analysis</h5>
+                            <p className="text-sm text-gray-300">
+                                {analysis.reasoning}
+                            </p>
+                        </div>
+                    )}
 
-                        <div className="grid md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                                <h4 className="font-semibold">Key Insights</h4>
-                                {(analysis?.factors || [])
-                                    .slice(0, 4)
-                                    .map((factor, index) => (
+                    <div className="grid md:grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                            <h4 className="font-semibold">Key Insights</h4>
+                            {(analysis?.factors || [])
+                                .slice(0, 4)
+                                .map((factor, index) => {
+                                    // Convert technical factor names to user-friendly text
+                                    const factorMap = {
+                                        vendor_experience:
+                                            "Vendor Experience Evaluated",
+                                        client_payment_history:
+                                            "Client Payment History Analyzed",
+                                        jurisdiction_risk:
+                                            "Geographic Risk Assessment",
+                                        invoice_amount:
+                                            "Invoice Amount Validation",
+                                        payment_terms: "Payment Terms Review",
+                                        red_flags: "Risk Factors Identified",
+                                        mrr_stability:
+                                            "Monthly Revenue Stability",
+                                        churn_analysis:
+                                            "Customer Churn Analysis",
+                                        growth_trajectory:
+                                            "Growth Trajectory Assessment",
+                                        customer_retention:
+                                            "Customer Retention Metrics",
+                                        market_position:
+                                            "Market Position Analysis",
+                                    };
+
+                                    const displayFactor =
+                                        factorMap[factor] || factor;
+
+                                    return (
                                         <div
                                             key={index}
                                             className="flex items-center space-x-2"
@@ -1237,60 +1476,81 @@ const AnalysisStep = ({
                                                 className="text-nb-ok"
                                             />
                                             <span className="text-sm">
-                                                {factor}
+                                                {displayFactor}
                                             </span>
                                         </div>
-                                    ))}
-                            </div>
+                                    );
+                                })}
+                        </div>
 
-                            <div className="space-y-4">
-                                <h4 className="font-semibold">
-                                    Projected Metrics
-                                </h4>
-                                <div className="space-y-2">
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-nb-ink/70">
-                                            Asset Value:
-                                        </span>
-                                        <span className="font-semibold">
-                                            {formatCurrency(
-                                                analysis.estimatedValue
-                                            )}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-nb-ink/70">
-                                            Confidence:
-                                        </span>
-                                        <span className="font-semibold">
-                                            {analysis.confidence}%
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-nb-ink/70">
-                                            Risk Level:
-                                        </span>
-                                        <span className="font-semibold">
-                                            {analysis.score >= 80
-                                                ? "Low"
-                                                : analysis.score >= 65
-                                                ? "Medium"
-                                                : "High"}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-sm text-nb-ink/70">
-                                            Est. APY:
-                                        </span>
-                                        <span className="font-semibold text-nb-accent">
-                                            {analysis.projectedROI}%
-                                        </span>
-                                    </div>
+                        <div className="space-y-4">
+                            <h4 className="font-semibold">Projected Metrics</h4>
+                            <div className="space-y-2">
+                                <div className="flex justify-between">
+                                    <span className="text-sm text-nb-ink/70">
+                                        Asset Value:
+                                    </span>
+                                    <span className="font-semibold">
+                                        {formatCurrency(
+                                            analysis.estimatedValue || 0
+                                        )}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-sm text-nb-ink/70">
+                                        Confidence:
+                                    </span>
+                                    <span className="font-semibold">
+                                        {analysis.confidence || 0}%
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-sm text-nb-ink/70">
+                                        Risk Level:
+                                    </span>
+                                    <span className="font-semibold">
+                                        {(analysis.riskScore ||
+                                            analysis.score) >= 80
+                                            ? "Low"
+                                            : (analysis.riskScore ||
+                                                  analysis.score) >= 65
+                                            ? "Medium"
+                                            : "High"}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-sm text-nb-ink/70">
+                                        Est. APY:
+                                    </span>
+                                    <span className="font-semibold text-nb-accent">
+                                        {analysis.projectedROI || "N/A"}%
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-sm text-nb-ink/70">
+                                        Basket:
+                                    </span>
+                                    <span className="font-semibold text-blue-400">
+                                        {analysis.basketId || "Not assigned"}
+                                    </span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-sm text-nb-ink/70">
+                                        Advance Rate:
+                                    </span>
+                                    <span className="font-semibold">
+                                        {analysis.recommendedAdvance
+                                            ? `${(
+                                                  analysis.recommendedAdvance *
+                                                  100
+                                              ).toFixed(1)}%`
+                                            : "N/A"}
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </div>
-                )}
+                </div>
 
                 <div className="flex justify-between pt-6">
                     <NBButton variant="outline" onClick={prevStep}>
@@ -1445,62 +1705,105 @@ const ConfirmStep = ({
 
     const handleTokenize = async () => {
         if (!isConnected || !account) {
-            toast.error('Please connect your wallet first');
+            toast.error("Please connect your wallet first");
             return;
         }
 
-        if (!currentFlow.analysis || !currentFlow.analysis.riskScore) {
-            toast.error('Please complete analysis first');
+        if (
+            !currentFlow.analysis ||
+            (!currentFlow.analysis.riskScore && !currentFlow.analysis.score)
+        ) {
+            toast.error("Please complete analysis first");
+            return;
+        }
+
+        if (!currentFlow.offer || !currentFlow.offer.amount) {
+            toast.error("Please complete the offer step first");
             return;
         }
 
         setTokenizing(true);
 
         try {
-            const assetId = `asset-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            
+            const assetId = `asset-${Date.now()}-${Math.random()
+                .toString(36)
+                .substr(2, 9)}`;
+
             const assetData = {
                 assetId,
                 amount: currentFlow.offer.amount || 10000, // Fallback amount
-                riskScore: currentFlow.analysis.riskScore,
-                assetType: getAssetTypeIndex(currentFlow.type) // Convert string to index
+                riskScore: Math.min(
+                    255,
+                    Math.max(
+                        0,
+                        Math.floor(
+                            currentFlow.analysis.riskScore ||
+                                currentFlow.analysis.score ||
+                                50
+                        )
+                    )
+                ), // Ensure valid uint8
+                assetType: getAssetTypeString(currentFlow.type), // Convert to valid string
             };
 
-            console.log('Tokenizing with data:', assetData);
+            console.log("Tokenizing with data:", assetData);
+
+            // Validate data types before sending to blockchain
+            if (typeof assetData.assetId !== "string") {
+                throw new Error("Asset ID must be a string");
+            }
+            if (typeof assetData.amount !== "number" || assetData.amount <= 0) {
+                throw new Error("Amount must be a positive number");
+            }
+            if (
+                typeof assetData.riskScore !== "number" ||
+                assetData.riskScore < 0 ||
+                assetData.riskScore > 255
+            ) {
+                throw new Error(
+                    "Risk score must be a number between 0 and 255"
+                );
+            }
+            if (typeof assetData.assetType !== "string") {
+                throw new Error("Asset type must be a string");
+            }
 
             // Create asset on blockchain
             const txResult = await createAsset(assetData);
-            
+
             // Save to backend
-            await apiService.createAsset({
-                ...currentFlow,
+            await apiService.createAssetWithData({
+                assetType: currentFlow.type,
+                amount: currentFlow.offer.amount,
+                description: `${currentFlow.type} asset`,
+                userAddress: account,
+                originator: account,
                 assetId,
                 analysis: currentFlow.analysis,
                 txHash: txResult.hash,
-                originator: account
+                documentUrl:
+                    currentFlow.uploadedFiles?.[0]?.uploadResult?.fileUrl ||
+                    currentFlow.documentUrls?.[0],
+                fileUrl:
+                    currentFlow.uploadedFiles?.[0]?.uploadResult?.fileUrl ||
+                    currentFlow.documentUrls?.[0],
             });
 
-            toast.success('🎉 Asset tokenized successfully!');
+            toast.success("🎉 Asset tokenized successfully!");
             nextStep();
-            
         } catch (error) {
-            console.error('Tokenization failed:', error);
-            toast.error('Tokenization failed: ' + error.message);
+            console.error("Tokenization failed:", error);
+            toast.error("Tokenization failed: " + error.message);
         } finally {
             setTokenizing(false);
         }
     };
 
-    // Helper function to convert asset type to index
-    const getAssetTypeIndex = (type) => {
-        const typeMap = {
-            'invoice': 0,
-            'saas': 1,
-            'creator': 2,
-            'rental': 3,
-            'luxury': 4
-        };
-        return typeMap[type?.toLowerCase()] || 0;
+    // Helper function to convert asset type to string (contract expects string, not index)
+    const getAssetTypeString = (type) => {
+        const validTypes = ["invoice", "saas", "creator", "rental", "luxury"];
+        const normalizedType = type?.toLowerCase();
+        return validTypes.includes(normalizedType) ? normalizedType : "invoice";
     };
 
     if (completed) {
@@ -1631,7 +1934,9 @@ const ConfirmStep = ({
                                     </span>
                                     <RiskScoreBadge
                                         score={
-                                            currentFlow.analysis?.score || 75
+                                            currentFlow.analysis?.riskScore ||
+                                            currentFlow.analysis?.score ||
+                                            75
                                         }
                                         size="sm"
                                     />

@@ -34,23 +34,23 @@ class BasketService {
     }
 
     determineBasketType(riskScore) {
-        // 4 risk buckets as requested:
-        if (riskScore >= 90) return "ultra_low"; // 90-100: Ultra Low Risk
-        if (riskScore >= 80) return "low"; // 80-89: Low Risk
-        if (riskScore >= 66) return "medium"; // 66-79: Medium Risk
-        if (riskScore >= 50) return "high"; // 50-65: High Risk
-        return "ultra_high"; // Below 50: Ultra High Risk (special handling)
+        // 5 risk buckets matching server.js logic:
+        if (riskScore >= 90) return "low-risk"; // 90-100: Low Risk
+        if (riskScore >= 80) return "medium-low-risk"; // 80-89: Medium-Low Risk
+        if (riskScore >= 65) return "medium-risk"; // 65-79: Medium Risk
+        if (riskScore >= 50) return "medium-high-risk"; // 50-64: Medium-High Risk
+        return "high-risk"; // 0-49: High Risk
     }
 
     getRiskRange(basketType) {
         const ranges = {
-            ultra_low: { min: 90, max: 100, maxCapacity: 50 }, // 90-100 risk score
-            low: { min: 80, max: 89, maxCapacity: 40 }, // 80-89 risk score
-            medium: { min: 66, max: 79, maxCapacity: 30 }, // 66-79 risk score
-            high: { min: 50, max: 65, maxCapacity: 25 }, // 50-65 risk score
-            ultra_high: { min: 0, max: 49, maxCapacity: 15 }, // Below 50 (special handling)
+            "low-risk": { min: 90, max: 100, maxCapacity: 50 }, // 90-100 risk score
+            "medium-low-risk": { min: 80, max: 89, maxCapacity: 40 }, // 80-89 risk score
+            "medium-risk": { min: 65, max: 79, maxCapacity: 30 }, // 65-79 risk score
+            "medium-high-risk": { min: 50, max: 64, maxCapacity: 25 }, // 50-64 risk score
+            "high-risk": { min: 0, max: 49, maxCapacity: 15 }, // 0-49 risk score
         };
-        return ranges[basketType] || ranges.medium;
+        return ranges[basketType] || ranges["medium-risk"];
     }
 
     async createNewBasket(basketType, initialRiskScore = 0) {
@@ -78,11 +78,11 @@ class BasketService {
 
     getBasketName(basketType, number) {
         const names = {
-            ultra_low: `Ultra Low Risk Basket #${number}`,
-            low: `Low Risk Basket #${number}`,
-            medium: `Medium Risk Basket #${number}`,
-            high: `High Risk Basket #${number}`,
-            ultra_high: `Ultra High Risk Basket #${number}`,
+            "low-risk": `Low Risk Basket #${number}`,
+            "medium-low-risk": `Medium-Low Risk Basket #${number}`,
+            "medium-risk": `Medium Risk Basket #${number}`,
+            "medium-high-risk": `Medium-High Risk Basket #${number}`,
+            "high-risk": `High Risk Basket #${number}`,
         };
         return names[basketType] || `Risk Basket #${number}`;
     }
@@ -141,16 +141,15 @@ class BasketService {
     }
 
     calculateExpectedAPY(basketType) {
-        // APY based on risk tier (keeping under 9% as requested)
+        // APY based on risk tier (all under 10%)
         const baseAPY = {
-            ultra_low: 4.5, // 90-100 risk score: Lowest risk, lowest return
-            low: 5.8, // 80-89 risk score: Low risk
-            medium: 7.2, // 66-79 risk score: Medium risk
-            high: 8.5, // 50-65 risk score: High risk
-            ultra_high: 8.9, // Below 50: Ultra high risk, capped at 8.9%
-            mixed: 6.5, // Mixed baskets
+            "low-risk": 4.5, // 90-100 risk score: Low risk
+            "medium-low-risk": 6.0, // 80-89 risk score: Medium-low risk
+            "medium-risk": 7.5, // 65-79 risk score: Medium risk
+            "medium-high-risk": 8.5, // 50-64 risk score: Medium-high risk
+            "high-risk": 9.5, // 0-49 risk score: High risk
         };
-        return baseAPY[basketType] || 6.5;
+        return baseAPY[basketType] || 7.5;
     }
 
     async wouldExceedCapacity(basket, newRiskScore, newAmount) {
@@ -283,11 +282,11 @@ class BasketService {
 
     getRiskTierName(basketType) {
         const names = {
-            ultra_low: "Ultra Low Risk (90-100)",
-            low: "Low Risk (80-89)",
-            medium: "Medium Risk (66-79)",
-            high: "High Risk (50-65)",
-            ultra_high: "Ultra High Risk (0-49)",
+            "low-risk": "Low Risk (90-100)",
+            "medium-low-risk": "Medium-Low Risk (80-89)",
+            "medium-risk": "Medium Risk (65-79)",
+            "medium-high-risk": "Medium-High Risk (50-64)",
+            "high-risk": "High Risk (0-49)",
         };
         return names[basketType] || basketType;
     }

@@ -48,6 +48,14 @@ class ApiService {
         });
     }
 
+    // 1a. Create Asset with existing data (after tokenization)
+    async createAssetWithData(assetData) {
+        return this.request("/api/assets/create", {
+            method: "POST",
+            body: assetData, // Regular object with asset data
+        });
+    }
+
     // 2. AI Analysis (separate endpoint)
     async analyzeAssetWithAI(assetData) {
         return this.request("/api/ai/analyze", {
@@ -131,19 +139,19 @@ class ApiService {
     // === LEGACY SUPPORT (for backward compatibility) ===
 
     async getNetworkInfo() {
-        return { 
-            chainId: 5920, 
-            name: 'Kadena EVM Testnet',
-            rpcUrl: import.meta.env.VITE_RPC_URL
+        return {
+            chainId: 5920,
+            name: "Kadena EVM Testnet",
+            rpcUrl: import.meta.env.VITE_RPC_URL,
         };
     }
 
     async createAssetOnBackend(assetData) {
         // Convert to new format
         const formData = new FormData();
-        Object.keys(assetData).forEach(key => {
-            if (key === 'document' && assetData[key]) {
-                formData.append('document', assetData[key]);
+        Object.keys(assetData).forEach((key) => {
+            if (key === "document" && assetData[key]) {
+                formData.append("document", assetData[key]);
             } else {
                 formData.append(key, assetData[key]);
             }

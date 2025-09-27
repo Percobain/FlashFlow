@@ -160,7 +160,12 @@ class AssetAnalysisService {
             };
 
             // Step 5: Auto-basketize if requested (for invoices)
-            if (autoBasketize && type === "invoice" && assetId) {
+            if (
+                autoBasketize &&
+                type === "invoice" &&
+                assetId &&
+                assetId !== `temp-${Date.now()}`
+            ) {
                 try {
                     const BasketService = require("./BasketService");
                     const basketResult = await BasketService.basketizeInvoice(
@@ -182,8 +187,14 @@ class AssetAnalysisService {
                     finalAnalysis.basketization = {
                         success: false,
                         error: basketError.message,
+                        note: "Basketization skipped for temporary analysis",
                     };
                 }
+            } else {
+                finalAnalysis.basketization = {
+                    success: false,
+                    note: "Basketization not requested or temporary asset ID",
+                };
             }
 
             // Store analysis in database
@@ -260,9 +271,16 @@ class AssetAnalysisService {
         if (process.env.GEMINI_API_KEY) {
             try {
                 console.log("🤖 Using Gemini for summary generation...");
-                return await this.generateSummaryWithGemini(type, data, analysis);
+                return await this.generateSummaryWithGemini(
+                    type,
+                    data,
+                    analysis
+                );
             } catch (error) {
-                console.warn("⚠️ Gemini summary generation failed:", error.message);
+                console.warn(
+                    "⚠️ Gemini summary generation failed:",
+                    error.message
+                );
             }
         }
 
@@ -828,12 +846,12 @@ Return the enhanced data in the most appropriate format for ${type} assets.`
     }
 
     calculateROI(riskScore) {
-        // Higher risk = higher returns for investors, but capped at 9%
-        const baseROI = 5;
-        const riskPremium = (100 - riskScore) * 0.08; // Reduced multiplier
+        // Higher risk = higher returns for investors, but capped at 9.5%
+        const baseROI = 4.5;
+        const riskPremium = (100 - riskScore) * 0.06; // Reduced multiplier to stay under 10%
         const calculatedROI = baseROI + riskPremium;
-        // Cap at 9% maximum
-        return Math.min(calculatedROI, 9.0).toFixed(1);
+        // Cap at 9.5% maximum to stay under 10%
+        return Math.min(calculatedROI, 9.5).toFixed(1);
     }
 
     // Deterministic risk computation methods
@@ -936,7 +954,9 @@ Return the enhanced data in the most appropriate format for ${type} assets.`
 
         const expectedPaymentProb = 1 - riskScore / 100;
         const avgAnnualizedFee = (lateFee / 100) * expectedPaymentProb * 12;
-        const projectedROI = (avgAnnualizedFee * 100).toFixed(2);
+        const calculatedROI = avgAnnualizedFee * 100;
+        // Cap ROI at 9.5% to stay under 10%
+        const projectedROI = Math.min(calculatedROI, 9.5).toFixed(2);
 
         return {
             score: Number(riskScore.toFixed(0)),
