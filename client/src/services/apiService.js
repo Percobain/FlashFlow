@@ -103,13 +103,31 @@ class ApiService {
     });
   }
 
-  // Basket endpoints
-  async getBaskets() {
-    return this.request('/api/baskets');
+  // Basket API endpoints
+  async getBaskets(filters = {}) {
+    const queryParams = new URLSearchParams();
+    
+    if (filters.basketType) queryParams.append('basketType', filters.basketType);
+    if (filters.status) queryParams.append('status', filters.status);
+    if (filters.page) queryParams.append('page', filters.page);
+    if (filters.limit) queryParams.append('limit', filters.limit);
+    
+    return this.request(`/api/baskets?${queryParams.toString()}`);
   }
 
-  async getBasket(basketId) {
+  async getBasketDetails(basketId) {
     return this.request(`/api/baskets/${basketId}`);
+  }
+
+  async investInBasket(basketId, amount) {
+    return this.request(`/api/baskets/${basketId}/invest`, {
+      method: 'POST',
+      body: { amount },
+    });
+  }
+
+  async getBasketPerformance(basketId, period = '12m') {
+    return this.request(`/api/baskets/${basketId}/performance?period=${period}`);
   }
 
   // User endpoints

@@ -11,64 +11,81 @@ import {
   Clock,
   Users,
   BarChart3,
-  ArrowUpRight
+  ArrowUpRight,
+  Shield,
+  Calendar,
+  Target,
+  TrendingDown,
+  Activity,
+  Calculator
 } from 'lucide-react';
 import NBButton from '../components/NBButton';
 import NBCard from '../components/NBCard';
-import RiskScoreBadge from '../components/RiskScoreBadge';
+import SafetyScoreBadge from '../components/SafetyScoreBadge';
 import StatPill from '../components/StatPill';
 import basketService from '../services/basketService';
 
 const Invest = () => {
   const [baskets, setBaskets] = useState([]);
   const [featuredBaskets, setFeaturedBaskets] = useState(null);
+  const [platformStats, setPlatformStats] = useState({
+    totalAUM: 2400000,
+    avgAPY: 12.4,
+    activeInvestors: 847,
+    liveBaskets: 25,
+  });
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
-    riskLevel: '',
+    safetyLevel: '',
     minAPY: '',
     maxAPY: '',
     sector: '',
     status: 'active'
   });
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState('apy'); // 'apy', 'risk', 'value', 'recent'
+  const [sortBy, setSortBy] = useState('apy');
 
   useEffect(() => {
-    loadBaskets();
-    loadFeaturedBaskets();
-  }, [filters]);
+    loadData();
+  }, [filters, searchTerm]);
 
-  const loadBaskets = async () => {
+  const loadData = async () => {
+    setLoading(true);
     try {
-      const data = await basketService.listBaskets(filters);
-      setBaskets(data);
+      const basketFilters = {
+        ...filters,
+        searchTerm: searchTerm
+      };
+      
+      const [basketsData, featuredData, statsData] = await Promise.all([
+        basketService.listBaskets(basketFilters),
+        basketService.getFeaturedBaskets(),
+        basketService.getPlatformStats(),
+      ]);
+      
+      setBaskets(basketsData);
+      setFeaturedBaskets(featuredData);
+      setPlatformStats(statsData);
     } catch (error) {
-      console.error('Failed to load baskets:', error);
+      console.error('Failed to load investment data:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadFeaturedBaskets = async () => {
-    try {
-      const featured = await basketService.getFeaturedBaskets();
-      setFeaturedBaskets(featured);
-    } catch (error) {
-      console.error('Failed to load featured baskets:', error);
-    }
-  };
-
   const filteredAndSortedBaskets = baskets
-    .filter(basket => 
-      basket.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      basket.description.toLowerCase().includes(searchTerm.toLowerCase())
-    )
     .sort((a, b) => {
+      if (sortBy === 'apy' && !filters.safetyLevel && !filters.minAPY && !filters.maxAPY && !filters.sector && !searchTerm) {
+        if (a.isMock !== b.isMock) {
+          return a.isMock ? 1 : -1;
+        }
+      }
+      
       switch (sortBy) {
         case 'apy':
           return b.apy - a.apy;
-        case 'risk':
-          return b.riskScore - a.riskScore;
+        case 'safety':
+          return b.safetyScore - a.safetyScore;
         case 'value':
           return b.totalValue - a.totalValue;
         case 'recent':
@@ -78,27 +95,36 @@ const Invest = () => {
       }
     });
 
-  const getRiskLevelColor = (level) => {
-    switch (level) {
-      case 'Low': return 'nb-ok';
-      case 'Medium': return 'nb-warn';
-      case 'High': return 'nb-error';
-      default: return 'nb-ink/20';
-    }
-  };
-
   const formatCurrency = (amount) => {
     if (amount >= 1000000) return `$${(amount / 1000000).toFixed(1)}M`;
     if (amount >= 1000) return `$${(amount / 1000).toFixed(0)}K`;
     return `$${amount}`;
   };
 
+  // Simple Brutalist Loader
   if (loading) {
     return (
-      <div className="min-h-screen py-12">
+      <div className="min-h-screen py-12 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin w-8 h-8 border-4 border-nb-accent border-t-transparent rounded-full"></div>
+          <div className="flex flex-col justify-center items-center h-96">
+            {/* Simple geometric loader */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="w-8 h-8 bg-blue-600 border-2 border-gray-900 animate-bounce"></div>
+              <div className="w-8 h-8 bg-emerald-600 border-2 border-gray-900 animate-bounce delay-100"></div>
+              <div className="w-8 h-8 bg-purple-600 border-2 border-gray-900 animate-bounce delay-200"></div>
+              <div className="w-8 h-8 bg-orange-600 border-2 border-gray-900 animate-bounce delay-300"></div>
+              <div className="w-8 h-8 bg-red-600 border-2 border-gray-900 animate-bounce delay-400"></div>
+              <div className="w-8 h-8 bg-yellow-600 border-2 border-gray-900 animate-bounce delay-500"></div>
+              <div className="w-8 h-8 bg-pink-600 border-2 border-gray-900 animate-bounce delay-600"></div>
+              <div className="w-8 h-8 bg-indigo-600 border-2 border-gray-900 animate-bounce delay-700"></div>
+              <div className="w-8 h-8 bg-teal-600 border-2 border-gray-900 animate-bounce delay-800"></div>
+            </div>
+            
+            <div className="mt-8">
+              <h3 className="font-black text-xl text-gray-900 uppercase tracking-wide text-center">
+                LOADING...
+              </h3>
+            </div>
           </div>
         </div>
       </div>
@@ -106,246 +132,232 @@ const Invest = () => {
   }
 
   return (
-    <div className="min-h-screen py-12">
+    <div className="min-h-screen py-12 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
+        {/* Header - Minimalist with Color */}
         <motion.div
-          className="text-center mb-12"
+          className="text-center mb-16"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
         >
-          <h1 className="font-display font-bold text-5xl text-nb-ink mb-4">
-            Investment{' '}
-            <span className="text-transparent bg-gradient-to-r from-nb-accent to-nb-accent-2 bg-clip-text">
-              Marketplace
+          <h1 className="font-black text-6xl text-gray-900 mb-6 tracking-tight">
+            INVESTMENT
+            <br />
+            <span className="bg-blue-600 text-white px-4 py-2 inline-block transform rotate-1">
+              MARKETPLACE
             </span>
           </h1>
-          <p className="text-xl text-nb-ink/70 max-w-3xl mx-auto">
-            Discover diversified cash flow baskets with transparent risk scoring 
-            and competitive returns across multiple sectors.
+          <p className="text-xl text-gray-600 max-w-3xl mx-auto font-medium">
+            Discover diversified cash flow baskets with transparent safety scoring
           </p>
         </motion.div>
 
-        {/* Market Stats */}
+        {/* Market Stats - Colorful Cards */}
         <motion.div
-          className="grid md:grid-cols-4 gap-4 mb-8"
+          className="grid md:grid-cols-4 gap-6 mb-16"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          <StatPill
-            value="$2.4M"
-            label="Total AUM"
-            icon={DollarSign}
-            color="nb-accent"
-          />
-          <StatPill
-            value="12.4%"
-            label="Avg APY"
-            icon={TrendingUp}
-            color="nb-accent-2"
-            trend={2.1}
-          />
-          <StatPill
-            value="847"
-            label="Active Investors"
-            icon={Users}
-            color="nb-ok"
-          />
-          <StatPill
-            value="25"
-            label="Live Baskets"
-            icon={BarChart3}
-            color="nb-purple"
-          />
+          <div className="bg-blue-600 text-white border-4 border-blue-700 p-6 transform -rotate-1 hover:rotate-0 transition-transform">
+            <div className="text-3xl font-black mb-2">{formatCurrency(platformStats.totalAUM)}</div>
+            <div className="text-sm font-bold text-blue-100 uppercase tracking-wide">TOTAL AUM</div>
+          </div>
+          <div className="bg-emerald-600 text-white border-4 border-emerald-700 p-6 transform rotate-1 hover:rotate-0 transition-transform">
+            <div className="text-3xl font-black mb-2">{platformStats.avgAPY.toFixed(1)}%</div>
+            <div className="text-sm font-bold text-emerald-100 uppercase tracking-wide">AVG APY</div>
+          </div>
+          <div className="bg-purple-600 text-white border-4 border-purple-700 p-6 transform -rotate-1 hover:rotate-0 transition-transform">
+            <div className="text-3xl font-black mb-2">{platformStats.activeInvestors.toLocaleString()}</div>
+            <div className="text-sm font-bold text-purple-100 uppercase tracking-wide">INVESTORS</div>
+          </div>
+          <div className="bg-orange-600 text-white border-4 border-orange-700 p-6 transform rotate-1 hover:rotate-0 transition-transform">
+            <div className="text-3xl font-black mb-2">{platformStats.liveBaskets}</div>
+            <div className="text-sm font-bold text-orange-100 uppercase tracking-wide">LIVE BASKETS</div>
+          </div>
         </motion.div>
 
-        {/* Featured Baskets */}
-        {featuredBaskets && (
-          <motion.div
-            className="mb-12"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-          >
-            <h2 className="font-display font-bold text-3xl text-nb-ink mb-6">Featured Baskets</h2>
-            <div className="grid md:grid-cols-3 gap-6">
-              {Object.entries(featuredBaskets).map(([category, baskets]) => (
-                <div key={category}>
-                  <h3 className="font-semibold text-lg text-nb-ink mb-3 capitalize">
-                    {category.replace(/([A-Z])/g, ' $1').trim()}
-                  </h3>
-                  <div className="space-y-3">
-                    {baskets.slice(0, 1).map(basket => (
-                      <FeaturedBasketCard key={basket.id} basket={basket} />
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
-        )}
-
-        <div className="grid lg:grid-cols-4 gap-8">
-          {/* Filters Sidebar */}
+        <div className="grid lg:grid-cols-5 gap-8">
+          {/* Filters Sidebar - Clean with Accent Colors */}
           <div className="lg:col-span-1">
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 }}
+              className="sticky top-8"
             >
-              <NBCard>
-                <h3 className="font-bold text-lg mb-4 flex items-center">
-                  <Filter size={16} className="mr-2" />
-                  Filters
-                </h3>
-                
-                <div className="space-y-6">
+              <div className="bg-white border-4 border-gray-900 shadow-lg">
+                {/* Filter Header */}
+                <div className="bg-gray-900 text-white p-6 border-b-4 border-gray-900">
+                  <h3 className="font-black text-xl flex items-center">
+                    <div className="w-8 h-8 bg-blue-600 text-white flex items-center justify-center mr-3 border-2 border-blue-600">
+                      <Filter size={16} className="font-bold" />
+                    </div>
+                    FILTERS
+                  </h3>
+                </div>
+
+                <div className="p-6 space-y-8">
                   {/* Search */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">Search</label>
+                    <label className="block text-sm font-black text-gray-900 mb-3 uppercase tracking-wide">
+                      SEARCH
+                    </label>
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-nb-ink/40" size={16} />
                       <input
                         type="text"
-                        placeholder="Search baskets..."
+                        placeholder="Search"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2 nb-border rounded-lg focus:outline-none focus:ring-2 focus:ring-nb-accent"
+                        className="w-full px-4 py-4 bg-gray-50 border-4 border-gray-300 focus:outline-none focus:border-blue-600 font-bold placeholder:text-gray-400"
                       />
+                      <Search size={20} className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-500" />
                     </div>
                   </div>
 
-                  {/* Risk Level */}
+                  {/* Safety Level */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">Risk Level</label>
-                    <select
-                      value={filters.riskLevel}
-                      onChange={(e) => setFilters(prev => ({ ...prev, riskLevel: e.target.value }))}
-                      className="w-full px-3 py-2 nb-border rounded-lg focus:outline-none focus:ring-2 focus:ring-nb-accent"
-                    >
-                      <option value="">All Levels</option>
-                      <option value="Low">Low Risk</option>
-                      <option value="Medium">Medium Risk</option>
-                      <option value="High">High Risk</option>
-                    </select>
+                    <label className="block text-sm font-black text-gray-900 mb-3 uppercase tracking-wide">
+                      SAFETY LEVEL
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={filters.safetyLevel}
+                        onChange={(e) => setFilters(prev => ({ ...prev, safetyLevel: e.target.value }))}
+                        className="w-full px-4 py-4 bg-gray-50 border-4 border-gray-300 focus:outline-none focus:border-blue-600 font-bold appearance-none cursor-pointer"
+                      >
+                        <option value="">ALL LEVELS</option>
+                        <option value="High">HIGH SAFETY</option>
+                        <option value="Medium">MEDIUM SAFETY</option>
+                        <option value="Low">LOW SAFETY</option>
+                      </select>
+                      <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                        <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-600"></div>
+                      </div>
+                    </div>
                   </div>
 
                   {/* APY Range */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">APY Range</label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <label className="block text-sm font-black text-gray-900 mb-3 uppercase tracking-wide">
+                      APY RANGE
+                    </label>
+                    <div className="grid grid-cols-2 gap-3">
                       <input
                         type="number"
-                        placeholder="Min %"
+                        placeholder="MIN"
                         value={filters.minAPY}
                         onChange={(e) => setFilters(prev => ({ ...prev, minAPY: e.target.value }))}
-                        className="px-3 py-2 nb-border rounded-lg focus:outline-none focus:ring-2 focus:ring-nb-accent"
+                        className="px-4 py-3 bg-gray-50 border-4 border-gray-300 focus:outline-none focus:border-blue-600 font-bold placeholder:text-gray-400"
                       />
                       <input
                         type="number"
-                        placeholder="Max %"
+                        placeholder="MAX"
                         value={filters.maxAPY}
                         onChange={(e) => setFilters(prev => ({ ...prev, maxAPY: e.target.value }))}
-                        className="px-3 py-2 nb-border rounded-lg focus:outline-none focus:ring-2 focus:ring-nb-accent"
+                        className="px-4 py-3 bg-gray-50 border-4 border-gray-300 focus:outline-none focus:border-blue-600 font-bold placeholder:text-gray-400"
                       />
                     </div>
                   </div>
 
-                  {/* Sector */}
+                  {/* Sort By */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">Sector</label>
-                    <select
-                      value={filters.sector}
-                      onChange={(e) => setFilters(prev => ({ ...prev, sector: e.target.value }))}
-                      className="w-full px-3 py-2 nb-border rounded-lg focus:outline-none focus:ring-2 focus:ring-nb-accent"
-                    >
-                      <option value="">All Sectors</option>
-                      <option value="Invoice">Invoice</option>
-                      <option value="SaaS">SaaS</option>
-                      <option value="Creator">Creator</option>
-                      <option value="Rental">Rental</option>
-                      <option value="Luxury">Luxury</option>
-                    </select>
+                    <label className="block text-sm font-black text-gray-900 mb-3 uppercase tracking-wide">
+                      SORT BY
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="w-full px-4 py-4 bg-gray-50 border-4 border-gray-300 focus:outline-none focus:border-blue-600 font-bold appearance-none cursor-pointer"
+                      >
+                        <option value="apy">HIGHEST APY</option>
+                        <option value="safety">HIGHEST SAFETY</option>
+                        <option value="value">TOTAL VALUE</option>
+                        <option value="recent">MOST RECENT</option>
+                      </select>
+                      <div className="absolute right-4 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                        <div className="w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-600"></div>
+                      </div>
+                    </div>
                   </div>
 
-                  <NBButton 
-                    variant="outline" 
-                    className="w-full"
-                    onClick={() => setFilters({ riskLevel: '', minAPY: '', maxAPY: '', sector: '', status: 'active' })}
+                  {/* Clear Filters */}
+                  <button
+                    onClick={() => {
+                      setFilters({
+                        safetyLevel: '',
+                        minAPY: '',
+                        maxAPY: '',
+                        sector: '',
+                        status: 'active'
+                      });
+                      setSearchTerm('');
+                      setSortBy('apy');
+                    }}
+                    className="w-full px-4 py-4 bg-red-600 hover:bg-red-700 text-white font-black uppercase tracking-wide transition-colors border-4 border-red-700"
                   >
-                    Clear Filters
-                  </NBButton>
-                </div>
-              </NBCard>
-            </motion.div>
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            {/* Sort and View Controls */}
-            <motion.div
-              className="flex justify-between items-center mb-6"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-            >
-              <div className="flex items-center space-x-4">
-                <span className="text-sm text-nb-ink/70">
-                  {filteredAndSortedBaskets.length} basket{filteredAndSortedBaskets.length !== 1 ? 's' : ''}
-                </span>
-                <div className="flex space-x-1">
-                  {['apy', 'risk', 'value', 'recent'].map((sort) => (
-                    <button
-                      key={sort}
-                      onClick={() => setSortBy(sort)}
-                      className={`px-3 py-1 text-xs rounded-lg transition-colors capitalize ${
-                        sortBy === sort
-                          ? 'bg-nb-accent text-nb-ink font-semibold'
-                          : 'text-nb-ink/60 hover:bg-nb-accent/20'
-                      }`}
-                    >
-                      {sort === 'apy' ? 'APY' : sort}
-                    </button>
-                  ))}
+                    CLEAR ALL
+                  </button>
                 </div>
               </div>
             </motion.div>
+          </div>
 
-            {/* Baskets Grid */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {filteredAndSortedBaskets.map((basket, index) => (
-                <motion.div
-                  key={basket.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 + index * 0.1 }}
-                >
-                  <BasketCard basket={basket} />
-                </motion.div>
-              ))}
-            </div>
-
-            {filteredAndSortedBaskets.length === 0 && (
-              <NBCard>
-                <div className="text-center py-12">
-                  <div className="text-4xl mb-4">📊</div>
-                  <h3 className="font-bold text-xl text-nb-ink mb-2">No baskets found</h3>
-                  <p className="text-nb-ink/70 mb-6">
-                    Try adjusting your filters or search terms to find matching baskets.
+          {/* Baskets List */}
+          <div className="lg:col-span-4">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              {/* Header */}
+              <div className="flex justify-between items-center mb-12">
+                <div>
+                  <h2 className="font-black text-4xl text-gray-900 mb-2 uppercase tracking-tight">
+                    INVESTMENT BASKETS
+                  </h2>
+                  <p className="text-gray-600 font-bold">
+                    {filteredAndSortedBaskets.length} BASKETS AVAILABLE
                   </p>
-                  <NBButton 
-                    variant="outline"
+                </div>
+              </div>
+
+              {/* Cards Grid */}
+              <div className="grid lg:grid-cols-2 gap-8">
+                {filteredAndSortedBaskets.map(basket => (
+                  <BasketCard key={basket.id} basket={basket} />
+                ))}
+              </div>
+
+              {/* Empty State */}
+              {filteredAndSortedBaskets.length === 0 && (
+                <div className="text-center py-20">
+                  <div className="w-24 h-24 bg-gray-600 text-white flex items-center justify-center mx-auto mb-8 border-4 border-gray-700">
+                    <BarChart3 size={32} className="font-bold" />
+                  </div>
+                  <h3 className="text-2xl font-black text-gray-900 mb-4 uppercase">NO BASKETS FOUND</h3>
+                  <p className="text-gray-600 font-bold mb-8">
+                    ADJUST YOUR FILTERS TO SEE MORE RESULTS
+                  </p>
+                  <button
                     onClick={() => {
-                      setFilters({ riskLevel: '', minAPY: '', maxAPY: '', sector: '', status: 'active' });
+                      setFilters({
+                        safetyLevel: '',
+                        minAPY: '',
+                        maxAPY: '',
+                        sector: '',
+                        status: 'active'
+                      });
                       setSearchTerm('');
                     }}
+                    className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white font-black uppercase tracking-wide transition-colors border-4 border-blue-700"
                   >
-                    Clear All Filters
-                  </NBButton>
+                    CLEAR FILTERS
+                  </button>
                 </div>
-              </NBCard>
-            )}
+              )}
+            </motion.div>
           </div>
         </div>
       </div>
@@ -353,118 +365,132 @@ const Invest = () => {
   );
 };
 
-// Featured Basket Card Component
-const FeaturedBasketCard = ({ basket }) => (
-  <NBCard className="relative overflow-hidden">
-    <div className="absolute top-0 right-0 bg-nb-accent px-2 py-1 rounded-bl-nb">
-      <Star size={12} className="text-nb-ink" />
-    </div>
-    
-    <div className="space-y-3">
-      <h4 className="font-bold text-lg">{basket.name}</h4>
-      <div className="grid grid-cols-2 gap-3 text-sm">
-        <div>
-          <span className="text-nb-ink/60">APY:</span>
-          <span className="ml-1 font-bold text-nb-accent">{basket.apy}%</span>
-        </div>
-        <div>
-          <span className="text-nb-ink/60">Value:</span>
-          <span className="ml-1 font-bold">{formatCurrency(basket.totalValue)}</span>
-        </div>
-      </div>
-      <Link to={`/baskets/${basket.id}`}>
-        <NBButton size="sm" className="w-full">
-          View Details
-        </NBButton>
-      </Link>
-    </div>
-  </NBCard>
-);
-
-// Main Basket Card Component  
+// Enhanced BasketCard with Colors
 const BasketCard = ({ basket }) => (
-  <NBCard className="h-full">
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <h3 className="font-bold text-lg text-nb-ink mb-1">{basket.name}</h3>
-          <p className="text-sm text-nb-ink/70 line-clamp-2">{basket.description}</p>
-        </div>
-        <RiskScoreBadge score={basket.riskScore} size="sm" />
-      </div>
-
-      {/* Key Metrics */}
-      <div className="grid grid-cols-3 gap-4">
-        <div>
-          <div className="text-xs text-nb-ink/60">APY</div>
-          <div className="font-bold text-xl text-nb-accent">{basket.apy}%</div>
-        </div>
-        <div>
-          <div className="text-xs text-nb-ink/60">Total Value</div>
-          <div className="font-bold text-lg">{formatCurrency(basket.totalValue)}</div>
-        </div>
-        <div>
-          <div className="text-xs text-nb-ink/60">Investors</div>
-          <div className="font-bold text-lg">{basket.investorCount}</div>
-        </div>
-      </div>
-
-      {/* Composition */}
-      <div>
-        <div className="text-xs text-nb-ink/60 mb-2">Composition</div>
-        <div className="flex flex-wrap gap-1">
-          {basket.composition.slice(0, 3).map((comp, index) => (
-            <span 
-              key={index}
-              className="px-2 py-1 text-xs bg-nb-accent/20 rounded-full capitalize"
-            >
-              {comp.type} {comp.percentage}%
-            </span>
-          ))}
-          {basket.composition.length > 3 && (
-            <span className="px-2 py-1 text-xs bg-nb-ink/10 rounded-full">
-              +{basket.composition.length - 3} more
-            </span>
-          )}
+  <Link to={`/baskets/${basket.id}`} className="block group">
+    <div className="bg-white border-4 border-gray-900 hover:shadow-[8px_8px_0px_0px_rgba(59,130,246,0.5)] transition-all duration-200 group-hover:-translate-x-1 group-hover:-translate-y-1">
+      {/* Header with Color Accent */}
+      <div className={`p-6 border-b-4 border-gray-900 ${
+        !basket.isMock 
+          ? 'bg-gradient-to-r from-blue-600 to-gray-900 text-white' 
+          : 'bg-gradient-to-r from-blue-600 to-gray-900 text-white'
+      }`}>
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-2">
+              <h3 className="font-black text-xl uppercase tracking-tight">
+                {basket.name}
+              </h3>
+              {!basket.isMock && (
+                <span className="px-3 py-1 text-xs font-black bg-emerald-500 text-white border-2 border-emerald-600">
+                  LIVE
+                </span>
+              )}
+            </div>
+            <p className="text-white/90 font-bold text-sm">
+              {basket.description}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Status and Duration */}
-      <div className="flex justify-between items-center text-sm">
-        <div className={`px-3 py-1 rounded-full font-semibold ${
-          basket.status === 'active' ? 'bg-nb-ok text-nb-ink' :
-          basket.status === 'filling' ? 'bg-nb-warn text-nb-ink' :
-          'bg-nb-ink/20 text-nb-ink'
+      {/* Content */}
+      <div className="p-6 bg-white">
+        {/* Main Metrics */}
+        <div className="grid grid-cols-3 gap-6 mb-6">
+          <div className="text-center">
+            <div className="text-4xl font-black text-emerald-600 mb-1">
+              {basket.apy}%
+            </div>
+            <div className="text-xs font-black text-gray-500 uppercase tracking-wide">
+              APY
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-lg font-black text-gray-900 mb-1">
+              {formatCurrency(basket.totalValue)}
+            </div>
+            <div className="text-xs font-black text-gray-500 uppercase tracking-wide">
+              TOTAL
+            </div>
+          </div>
+          <div className="text-center">
+            <div className="text-lg font-black text-gray-900 mb-1">
+              {formatCurrency(basket.availableToInvest || basket.totalValue * 0.85)}
+            </div>
+            <div className="text-xs font-black text-gray-500 uppercase tracking-wide">
+              AVAILABLE
+            </div>
+          </div>
+        </div>
+
+        {/* Stats */}
+        <div className="flex items-center justify-between text-sm font-bold text-gray-600 mb-6 py-4 border-t-2 border-b-2 border-gray-200">
+          <div className="flex items-center gap-2">
+            <Users size={16} className="text-blue-600" />
+            <span>{basket.investorCount || 0}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Activity size={16} className="text-purple-600" />
+            <span>{basket.assetCount || 1}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Calendar size={16} className="text-orange-600" />
+            <span>{basket.duration || 24}M</span>
+          </div>
+        </div>
+
+        {/* Status and Safety */}
+        <div className="flex items-center justify-between mb-6">
+          <span className={`px-4 py-2 text-xs font-black uppercase tracking-wide border-2 ${
+            basket.status === 'open' || basket.status === 'active' 
+              ? 'bg-emerald-100 text-emerald-800 border-emerald-300' 
+              : 'bg-gray-100 text-gray-800 border-gray-300'
+          }`}>
+            {basket.status === 'open' ? 'ACTIVE' : basket.status?.toUpperCase()}
+          </span>
+          <SafetyScoreBadge 
+            score={basket.safetyScore} 
+            level={basket.safetyLevel}
+            size="sm"
+          />
+        </div>
+
+        {/* Asset Mix */}
+        {basket.composition && basket.composition.length > 0 && (
+          <div className="mb-6">
+            <div className="text-xs font-black text-gray-500 mb-3 uppercase tracking-wide">
+              ASSET MIX
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {basket.composition.slice(0, 3).map((comp, index) => (
+                <span 
+                  key={index}
+                  className="px-3 py-1 text-xs font-black bg-blue-50 text-blue-800 border-2 border-blue-200 uppercase"
+                >
+                  {comp.type} {comp.percentage}%
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Action Button */}
+        <button className={`w-full font-black py-4 px-6 uppercase tracking-wide transition-all border-4 hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,0.3)] hover:-translate-x-0.5 hover:-translate-y-0.5 ${
+          !basket.isMock 
+            ? 'bg-blue-600 hover:bg-blue-700 text-white border-blue-700' 
+            : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-700'
         }`}>
-          {basket.status}
-        </div>
-        <div className="flex items-center space-x-1 text-nb-ink/60">
-          <Clock size={12} />
-          <span>{basket.duration}M duration</span>
-        </div>
-      </div>
-
-      {/* Minimum Investment */}
-      <div className="text-sm text-nb-ink/70">
-        Min. investment: ${basket.minimumInvestment.toLocaleString()}
-      </div>
-
-      {/* Actions */}
-      <div className="flex space-x-2 pt-2">
-        <Link to={`/baskets/${basket.id}`} className="flex-1">
-          <NBButton variant="outline" size="sm" className="w-full">
-            <Eye size={14} className="mr-1" />
-            View Details
-          </NBButton>
-        </Link>
-        <NBButton size="sm" className="flex-1">
-          <ArrowUpRight size={14} className="mr-1" />
-          Invest
-        </NBButton>
+          <span className="flex items-center justify-center gap-2">
+            <span>
+              {!basket.isMock ? 'INVEST NOW' : 'VIEW DETAILS'}
+            </span>
+            <ArrowUpRight size={16} className="font-bold" />
+          </span>
+        </button>
       </div>
     </div>
-  </NBCard>
+  </Link>
 );
 
 const formatCurrency = (amount) => {

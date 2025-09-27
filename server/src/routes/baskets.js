@@ -17,7 +17,15 @@ router.get('/', async (req, res) => {
 
     const query = {};
     if (basketType) query.basketType = basketType;
-    if (status) query.status = status;
+
+    // Handle status mapping - treat 'active' filter as 'open' in database
+    if (status) {
+      if (status === 'active') {
+        query.status = 'open'; // Map frontend 'active' to backend 'open'
+      } else {
+        query.status = status;
+      }
+    }
 
     const baskets = await Basket.find(query)
       .sort({ createdAt: -1 })

@@ -4,8 +4,6 @@ const AWS = require('aws-sdk');
 const crypto = require('crypto');
 const File = require('../models/File');
 
-// Configure Cloudflare R2 (S3-compatible) using your exact env names
-// Try different endpoint formats for R2
 let baseEndpoint;
 const accountId = '4d4b19deb4ed59d4f870a32831501519'; // Extract from your S3_API URL
 
