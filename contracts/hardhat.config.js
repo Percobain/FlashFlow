@@ -46,6 +46,11 @@ module.exports = {
       gasPrice: 1000000000, // 1 gwei
       timeout: 60000, // 60 seconds
     },
+    celoTestnet: {
+      url: "https://forno.celo-sepolia.celo-testnet.org",
+      accounts: [`0x${SEPOLIA_API_KEY}`],
+      chainId: 11142220,
+    },
     hardhat: {
       // This is the default network when you run `npx hardhat test`
       // Remove gas limits to allow unlimited gas for testing

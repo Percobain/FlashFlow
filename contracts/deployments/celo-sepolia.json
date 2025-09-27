@@ -1,0 +1,15 @@
+{
+  "network": "celoSepoliaTestnet",
+  "chainId": 11142220,
+  "timestamp": "2025-09-27T01:46:45.761Z",
+  "deployer": "0x71AfE44200A819171a0687b1026E8d4424472Ff8",
+  "contracts": {
+    "selfVerifier": "0xc47bA4fA2B3713Fe1B1d62b5aF18B649aD36329A",
+    "identityHub": "0x16ECBA51e18a4a7e61fdC417f0d47AFEeDfbed74"
+  },
+  "config": {
+    "scopeString": "flashflow-protocol",
+    "verificationConfigId": "0xc52f992ebee4435b00b65d2c74b12435e96359d1ccf408041528414e6ea687bc"
+  },
+  "transactionHash": "0x837bc9cfa55be92c859b700f6c7e90a08396c296f3117bde963e461d794e1c47"
+}
