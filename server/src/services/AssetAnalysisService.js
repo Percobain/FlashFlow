@@ -121,7 +121,13 @@ class AssetAnalysisService {
     }
 
     async analyzeAssetData(data) {
-        const { type, data: assetData, userAddress } = data;
+        const {
+            type,
+            data: assetData,
+            userAddress,
+            assetId,
+            autoBasketize = true,
+        } = data;
 
         try {
             console.log(
@@ -152,6 +158,33 @@ class AssetAnalysisService {
                 originalData: assetData,
                 enhancedData,
             };
+
+            // Step 5: Auto-basketize if requested (for invoices)
+            if (autoBasketize && type === "invoice" && assetId) {
+                try {
+                    const BasketService = require("./BasketService");
+                    const basketResult = await BasketService.basketizeInvoice(
+                        assetId,
+                        analysis.score,
+                        analysis.estimatedValue,
+                        type
+                    );
+
+                    finalAnalysis.basketization = basketResult;
+                    console.log(
+                        `📦 Asset ${assetId} auto-basketized to ${basketResult.basketType}`
+                    );
+                } catch (basketError) {
+                    console.warn(
+                        "⚠️ Auto-basketization failed:",
+                        basketError.message
+                    );
+                    finalAnalysis.basketization = {
+                        success: false,
+                        error: basketError.message,
+                    };
+                }
+            }
 
             // Store analysis in database
             await this.storeAnalysisResult(userAddress, finalAnalysis);

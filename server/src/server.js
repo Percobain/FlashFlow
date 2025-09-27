@@ -75,6 +75,47 @@ app.post("/api/analyze-asset", async (req, res) => {
     }
 });
 
+// Asset analysis with automatic basketization
+app.post("/api/analyze-and-basketize", async (req, res) => {
+    try {
+        const { type, data, userAddress, assetId } = req.body;
+
+        if (!assetId) {
+            return res.status(400).json({
+                success: false,
+                error: "Asset ID is required for basketization",
+            });
+        }
+
+        // Analyze with auto-basketization enabled
+        const analysis = await AssetAnalysisService.analyzeAssetData({
+            type,
+            data,
+            userAddress,
+            assetId,
+            autoBasketize: true,
+        });
+
+        res.json({
+            success: true,
+            analysis,
+            basketized: !!analysis.basketization?.success,
+            basketInfo: analysis.basketization,
+            timestamp: new Date().toISOString(),
+        });
+    } catch (error) {
+        console.error("Analysis and basketization failed:", error);
+        res.status(500).json({
+            success: false,
+            error: "Analysis and basketization failed",
+            details:
+                process.env.NODE_ENV === "development"
+                    ? error.message
+                    : undefined,
+        });
+    }
+});
+
 // AI-Enhanced analysis endpoint (explicit)
 app.post("/api/analyze-asset-ai", async (req, res) => {
     try {
@@ -181,6 +222,13 @@ app.get("/", (req, res) => {
             riskAnalysis: "/api/risk-analysis/:type",
             assetAnalysis: "/api/analyze-asset",
             aiAssetAnalysis: "/api/analyze-asset-ai",
+            analyzeAndBasketize: "/api/analyze-and-basketize",
+            basketStatistics: "/api/baskets/statistics",
+            basketRiskTiers: "/api/baskets/risk-tiers",
+            basketizeInvoice: "/api/baskets/basketize-invoice",
+            analyzeAndBasketizeInvoice:
+                "/api/baskets/analyze-and-basketize-invoice",
+            riskBucketsOverview: "/api/baskets/risk-buckets-overview",
             riskConfig: "/api/risk-config",
         },
     });
