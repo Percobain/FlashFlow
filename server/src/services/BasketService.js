@@ -1,127 +1,322 @@
-const Basket = require('../models/Basket');
-const { ethers } = require('ethers');
+const Basket = require("../models/Basket");
+const { ethers } = require("ethers");
 
 class BasketService {
-  async assignToBasket({ riskScore, assetType, amount, assetId }) {
-    // Determine basket type based on risk score
-    let basketType = this.determineBasketType(riskScore);
-    
-    // Find available basket
-    let basket = await Basket.findOne({
-      basketType,
-      status: 'open',
-      isFull: false,
-      currentRiskScore: { $lt: this.getMaxRisk(basketType) - 5 }
-    });
-    
-    // Create new basket if needed or current would exceed limits
-    if (!basket || await this.wouldExceedThreshold(basket, riskScore, amount)) {
-      basket = await this.createNewBasket(basketType);
+    async assignToBasket({
+        riskScore,
+        assetType,
+        amount,
+        assetId,
+        forceBasketType,
+    }) {
+        // Determine basket type based on risk score (4 buckets as requested)
+        let basketType = forceBasketType || this.determineBasketType(riskScore);
+
+        // Find available basket for this risk tier
+        let basket = await Basket.findOne({
+            basketType,
+            status: "open",
+            isFull: false,
+        });
+
+        // Create new basket if none exists or current would exceed capacity
+        if (
+            !basket ||
+            (await this.wouldExceedCapacity(basket, riskScore, amount))
+        ) {
+            basket = await this.createNewBasket(basketType, riskScore);
+        }
+
+        // Update basket with new asset
+        await this.addAssetToBasket(basket, assetId, amount, riskScore);
+
+        return basket;
     }
-    
-    // Update basket with new asset
-    await this.addAssetToBasket(basket, assetId, amount, riskScore);
-    
-    return basket;
-  }
 
-  determineBasketType(riskScore) {
-    if (riskScore >= 80) return 'low';      // Low risk (high score)
-    if (riskScore >= 65) return 'medium';   // Medium risk
-    return 'high';                          // High risk (low score)
-  }
+    determineBasketType(riskScore) {
+        // 5 risk buckets matching server.js logic:
+        if (riskScore >= 90) return "low-risk"; // 90-100: Low Risk
+        if (riskScore >= 80) return "medium-low-risk"; // 80-89: Medium-Low Risk
+        if (riskScore >= 65) return "medium-risk"; // 65-79: Medium Risk
+        if (riskScore >= 50) return "medium-high-risk"; // 50-64: Medium-High Risk
+        return "high-risk"; // 0-49: High Risk
+    }
 
-  getMaxRisk(basketType) {
-    const limits = { 
-      low: 30,      // Max 30% risk (min 70 score)
-      medium: 50,   // Max 50% risk (min 50 score) 
-      high: 70,     // Max 70% risk (min 30 score)
-      mixed: 100    // No limit
-    };
-    return limits[basketType];
-  }
+    getRiskRange(basketType) {
+        const ranges = {
+            "low-risk": { min: 90, max: 100, maxCapacity: 50 }, // 90-100 risk score
+            "medium-low-risk": { min: 80, max: 89, maxCapacity: 40 }, // 80-89 risk score
+            "medium-risk": { min: 65, max: 79, maxCapacity: 30 }, // 65-79 risk score
+            "medium-high-risk": { min: 50, max: 64, maxCapacity: 25 }, // 50-64 risk score
+            "high-risk": { min: 0, max: 49, maxCapacity: 15 }, // 0-49 risk score
+        };
+        return ranges[basketType] || ranges["medium-risk"];
+    }
 
-  async createNewBasket(basketType) {
-    const basketId = ethers.utils.id(`basket-${basketType}-${Date.now()}`);
-    
-    const basket = new Basket({
-      basketId,
-      basketType,
-      name: `${basketType.toUpperCase()} Risk Basket #${await this.getNextBasketNumber(basketType)}`,
-      description: `Automatically created ${basketType} risk basket`,
-      maxRiskThreshold: this.getMaxRisk(basketType),
-      currentRiskScore: 0,
-      expectedAPY: this.calculateExpectedAPY(basketType)
-    });
+    async createNewBasket(basketType, initialRiskScore = 0) {
+        const basketId = ethers.utils.id(`basket-${basketType}-${Date.now()}`);
+        const riskRange = this.getRiskRange(basketType);
+        const basketNumber = await this.getNextBasketNumber(basketType);
 
-    return await basket.save();
-  }
+        const basket = new Basket({
+            basketId,
+            basketType,
+            name: this.getBasketName(basketType, basketNumber),
+            description: this.getBasketDescription(basketType, riskRange),
+            maxRiskThreshold: riskRange.max,
+            minRiskThreshold: riskRange.min,
+            maxCapacity: riskRange.maxCapacity,
+            currentRiskScore: initialRiskScore,
+            averageRiskScore: initialRiskScore,
+            expectedAPY: this.calculateExpectedAPY(basketType),
+            riskTier: basketType,
+        });
 
-  async addAssetToBasket(basket, assetId, amount, riskScore) {
-    // Add asset to basket
-    basket.assetIds.push(assetId);
-    basket.assetCount += 1;
-    basket.totalValue += amount;
-    basket.availableToInvest += amount * 0.85; // 85% typically unlockable
-    
-    // Recalculate weighted risk score
-    basket.currentRiskScore = await this.calculateWeightedRisk(basket);
-    
-    // Check if basket is now full
-    const riskPercentage = (100 - basket.currentRiskScore);
-    basket.isFull = riskPercentage > this.getMaxRisk(basket.basketType);
-    
-    // Update performance tracking
-    basket.performance.push({
-      date: new Date(),
-      value: basket.totalValue,
-      apy: basket.expectedAPY
-    });
+        console.log(`📦 Created new ${basketType} risk basket: ${basket.name}`);
+        return await basket.save();
+    }
 
-    return await basket.save();
-  }
+    getBasketName(basketType, number) {
+        const names = {
+            "low-risk": `Low Risk Basket #${number}`,
+            "medium-low-risk": `Medium-Low Risk Basket #${number}`,
+            "medium-risk": `Medium Risk Basket #${number}`,
+            "medium-high-risk": `Medium-High Risk Basket #${number}`,
+            "high-risk": `High Risk Basket #${number}`,
+        };
+        return names[basketType] || `Risk Basket #${number}`;
+    }
 
-  async calculateWeightedRisk(basket) {
-    // This would typically query all assets in the basket
-    // For now, using simplified calculation
-    const Asset = require('../models/Asset');
-    const assets = await Asset.find({ assetId: { $in: basket.assetIds } });
-    
-    if (assets.length === 0) return 0;
-    
-    const totalValue = assets.reduce((sum, asset) => sum + asset.faceAmount, 0);
-    const weightedRisk = assets.reduce((sum, asset) => {
-      const weight = asset.faceAmount / totalValue;
-      return sum + (asset.riskScore * weight);
-    }, 0);
-    
-    return Math.round(weightedRisk);
-  }
+    getBasketDescription(basketType, riskRange) {
+        return (
+            `Automatically created basket for assets with risk scores ${riskRange.min}-${riskRange.max}. ` +
+            `Maximum capacity: ${
+                riskRange.maxCapacity
+            } assets. Expected APY: ${this.calculateExpectedAPY(basketType)}%`
+        );
+    }
 
-  calculateExpectedAPY(basketType) {
-    const baseAPY = { low: 8, medium: 12, high: 18, mixed: 15 };
-    return baseAPY[basketType] || 12;
-  }
+    async addAssetToBasket(basket, assetId, amount, riskScore) {
+        // Add asset to basket
+        basket.assetIds.push(assetId);
+        basket.assetCount += 1;
+        basket.totalValue += amount;
+        basket.availableToInvest += amount * 0.85; // 85% typically unlockable
 
-  async wouldExceedThreshold(basket, newRiskScore, newAmount) {
-    // Calculate what the new risk would be
-    const currentTotalValue = basket.totalValue;
-    const newTotalValue = currentTotalValue + newAmount;
-    
-    if (newTotalValue === 0) return false;
-    
-    const currentWeightedRisk = (basket.currentRiskScore * currentTotalValue) / newTotalValue;
-    const newWeight = newAmount / newTotalValue;
-    const newWeightedRisk = currentWeightedRisk + (newRiskScore * newWeight);
-    
-    const newRiskPercentage = 100 - newWeightedRisk;
-    return newRiskPercentage > this.getMaxRisk(basket.basketType);
-  }
+        // Recalculate weighted risk score
+        basket.currentRiskScore = await this.calculateWeightedRisk(basket);
 
-  async getNextBasketNumber(basketType) {
-    const count = await Basket.countDocuments({ basketType });
-    return count + 1;
-  }
+        // Check if basket is now full
+        const riskRange = this.getRiskRange(basket.basketType);
+        basket.isFull = basket.assetCount >= riskRange.maxCapacity;
+
+        // Update performance tracking
+        basket.performance.push({
+            date: new Date(),
+            value: basket.totalValue,
+            apy: basket.expectedAPY,
+        });
+
+        return await basket.save();
+    }
+
+    async calculateWeightedRisk(basket) {
+        // This would typically query all assets in the basket
+        // For now, using simplified calculation
+        const Asset = require("../models/Asset");
+        const assets = await Asset.find({ assetId: { $in: basket.assetIds } });
+
+        if (assets.length === 0) return 0;
+
+        const totalValue = assets.reduce(
+            (sum, asset) => sum + asset.faceAmount,
+            0
+        );
+        const weightedRisk = assets.reduce((sum, asset) => {
+            const weight = asset.faceAmount / totalValue;
+            return sum + asset.riskScore * weight;
+        }, 0);
+
+        return Math.round(weightedRisk);
+    }
+
+    calculateExpectedAPY(basketType) {
+        // APY based on risk tier (all under 10%)
+        const baseAPY = {
+            "low-risk": 4.5, // 90-100 risk score: Low risk
+            "medium-low-risk": 6.0, // 80-89 risk score: Medium-low risk
+            "medium-risk": 7.5, // 65-79 risk score: Medium risk
+            "medium-high-risk": 8.5, // 50-64 risk score: Medium-high risk
+            "high-risk": 9.5, // 0-49 risk score: High risk
+        };
+        return baseAPY[basketType] || 7.5;
+    }
+
+    async wouldExceedCapacity(basket, newRiskScore, newAmount) {
+        const riskRange = this.getRiskRange(basket.basketType);
+
+        // Check if adding this asset would exceed capacity
+        if (basket.assetCount >= riskRange.maxCapacity) {
+            return true;
+        }
+
+        // Check if risk score is within acceptable range for this basket type
+        if (newRiskScore < riskRange.min || newRiskScore > riskRange.max) {
+            return true;
+        }
+
+        // Check if total value would be too large (optional limit)
+        const maxBasketValue = 10000000; // $10M max per basket
+        if (basket.totalValue + newAmount > maxBasketValue) {
+            return true;
+        }
+
+        return false;
+    }
+
+    async getNextBasketNumber(basketType) {
+        const count = await Basket.countDocuments({ basketType });
+        return count + 1;
+    }
+
+    // New method to automatically basketize invoices after analysis
+    async basketizeInvoice(assetId, riskScore, amount, assetType = "invoice") {
+        try {
+            console.log(
+                `🔄 Basketizing invoice ${assetId} with risk score ${riskScore}`
+            );
+
+            // Assign to appropriate basket
+            const basket = await this.assignToBasket({
+                riskScore,
+                assetType,
+                amount,
+                assetId,
+            });
+
+            console.log(
+                `✅ Invoice ${assetId} assigned to basket ${basket.basketId} (${basket.basketType})`
+            );
+
+            return {
+                success: true,
+                basketId: basket.basketId,
+                basketType: basket.basketType,
+                basketName: basket.name,
+                riskTier: this.getRiskTierName(basket.basketType),
+                expectedAPY: basket.expectedAPY,
+            };
+        } catch (error) {
+            console.error(`❌ Failed to basketize invoice ${assetId}:`, error);
+            throw error;
+        }
+    }
+
+    // Get all baskets with their current status
+    async getAllBaskets() {
+        try {
+            const baskets = await Basket.find({}).sort({
+                basketType: 1,
+                createdAt: -1,
+            });
+
+            return baskets.map((basket) => ({
+                basketId: basket.basketId,
+                basketType: basket.basketType,
+                name: basket.name,
+                riskTier: this.getRiskTierName(basket.basketType),
+                assetCount: basket.assetCount,
+                totalValue: basket.totalValue,
+                availableToInvest: basket.availableToInvest,
+                expectedAPY: basket.expectedAPY,
+                currentRiskScore: basket.currentRiskScore,
+                status: basket.status,
+                isFull: basket.isFull,
+                capacity: this.getRiskRange(basket.basketType).maxCapacity,
+                utilizationRate: (
+                    (basket.assetCount /
+                        this.getRiskRange(basket.basketType).maxCapacity) *
+                    100
+                ).toFixed(1),
+            }));
+        } catch (error) {
+            console.error("Failed to get all baskets:", error);
+            throw error;
+        }
+    }
+
+    // Get basket statistics by risk tier
+    async getBasketStatistics() {
+        try {
+            const stats = await Basket.aggregate([
+                {
+                    $group: {
+                        _id: "$basketType",
+                        count: { $sum: 1 },
+                        totalValue: { $sum: "$totalValue" },
+                        totalAssets: { $sum: "$assetCount" },
+                        avgRiskScore: { $avg: "$currentRiskScore" },
+                        avgAPY: { $avg: "$expectedAPY" },
+                    },
+                },
+            ]);
+
+            const result = {};
+            stats.forEach((stat) => {
+                result[stat._id] = {
+                    basketCount: stat.count,
+                    totalValue: stat.totalValue || 0,
+                    totalAssets: stat.totalAssets || 0,
+                    averageRiskScore: Math.round(stat.avgRiskScore || 0),
+                    averageAPY: Number((stat.avgAPY || 0).toFixed(2)),
+                    riskTier: this.getRiskTierName(stat._id),
+                };
+            });
+
+            return result;
+        } catch (error) {
+            console.error("Failed to get basket statistics:", error);
+            throw error;
+        }
+    }
+
+    getRiskTierName(basketType) {
+        const names = {
+            "low-risk": "Low Risk (90-100)",
+            "medium-low-risk": "Medium-Low Risk (80-89)",
+            "medium-risk": "Medium Risk (65-79)",
+            "medium-high-risk": "Medium-High Risk (50-64)",
+            "high-risk": "High Risk (0-49)",
+        };
+        return names[basketType] || basketType;
+    }
+
+    // Find or create basket for a specific risk score
+    async findOrCreateBasketForRisk(riskScore, amount, assetType = "invoice") {
+        const basketType = this.determineBasketType(riskScore);
+
+        // Try to find existing basket
+        let basket = await Basket.findOne({
+            basketType,
+            status: "open",
+            isFull: false,
+        });
+
+        // Check if existing basket can accommodate this asset
+        if (
+            basket &&
+            (await this.wouldExceedCapacity(basket, riskScore, amount))
+        ) {
+            basket = null; // Force creation of new basket
+        }
+
+        // Create new basket if needed
+        if (!basket) {
+            basket = await this.createNewBasket(basketType, riskScore);
+        }
+
+        return basket;
+    }
 }
 
 module.exports = new BasketService();

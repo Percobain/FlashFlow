@@ -1,17 +1,17 @@
 {
-  "network": "kdaTestnet",
+  "network": "kadena-testnet",
   "chainId": 5920,
-  "timestamp": "2025-09-26T17:58:23.649Z",
+  "chainName": "Kadena EVM Testnet Chain 20",
+  "timestamp": "2025-09-27T15:57:52.452Z",
   "deployer": "0x71AfE44200A819171a0687b1026E8d4424472Ff8",
   "contracts": {
-    "token": "0xAdB17C7D41c065C0c57D69c7B4BC97A6fcD4D117",
-    "pool": "0xCA7c84C6Ca61f48fA04d7dBbA1649f269962997c",
-    "agent": "0x5F675D9E81bC91c73a41f3Ee377a7c1eeb2C062f"
+    "fUSD": "0xAdB17C7D41c065C0c57D69c7B4BC97A6fcD4D117",
+    "flashFlow": "0xF76c7Afb2F15aFB086283251f67b9D9B2db83c92"
   },
+  "initialPoolBalance": "100000000.0",
   "transactionHashes": {
-    "token": "0x57256e2766c19bd961a108c7ae3e3fb2281dcbd1882e842e754c26466e78448e",
-    "pool": "0x14831b5bbf8137e3619185d22a13e577503f7b114c7faf87cfed5ae0e7a236d0",
-    "agent": "0x9a4abfe140aeee1b2f415046f4c7e61f9c6b6849e9fc1a98e9b68e60b4e2a9df",
-    "funding": "0x80a31c394858ed6919620dfdd7778afdad35a0b6c7d417c65dcaf7a87681ae33"
+    "deployment": "0x52d9984b78171d325693c667bab76ad077f3deb3eae1021509f8bf140cd54264",
+    "funding": "0xcc370e01904ecdf043bd9f8a6cafe2175645cd83b2d49fa14e391c5a8cdda796",
+    "sync": "0xb067697950708be6697959f3cd5098bf1cd28c671177059b3ac7297cd8fd909b"
   }
 }

@@ -89,6 +89,15 @@
   .nb-card {
     @apply bg-nb-card nb-border rounded-nb p-6 nb-shadow transition-transform hover:-translate-y-1 active:translate-y-0;
   }
+
+  /* Fixed navbar padding */
+  .pt-navbar {
+    padding-top: 4rem; /* 64px for navbar */
+  }
+  
+  .pt-navbar-warning {
+    padding-top: 6.5rem; /* 104px for navbar + warning banner */
+  }
   
   /* Neo-Brutalist Toast Styles */
   .nb-toast[data-type="success"] {

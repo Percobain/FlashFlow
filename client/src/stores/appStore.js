@@ -5,10 +5,24 @@ const useAppStore = create(
   subscribeWithSelector((set, get) => ({
     // User state
     user: {
-      address: '0x1234567890123456789012345678901234567890',
-      isConnected: true,
-      kycStatus: 'verified',
-      reputation: 785,
+      address: null,
+      isConnected: false,
+      kycStatus: 'pending',
+      reputation: 0,
+      totalInvested: 0,
+      totalEarned: 0,
+      assetsCreated: 0,
+    },
+    
+    // Web3 state
+    web3: {
+      isInitialized: false,
+      chainId: null,
+      networkName: '',
+      balances: {
+        native: '0',
+        token: '0'
+      }
     },
     
     // Current flow state
@@ -41,8 +55,26 @@ const useAppStore = create(
       analytics: null,
     },
     
+    // Protocol stats
+    protocol: {
+      totalAssets: 0,
+      totalFunded: 0,
+      totalPaid: 0,
+      poolStats: {
+        balance: '0',
+        released: '0',
+        deposited: '0'
+      }
+    },
+    
     // Actions
-    setUser: (user) => set((state) => ({ user: { ...state.user, ...user } })),
+    setUser: (user) => set((state) => ({ 
+      user: { ...state.user, ...user } 
+    })),
+    
+    setWeb3: (web3Data) => set((state) => ({
+      web3: { ...state.web3, ...web3Data }
+    })),
     
     setCurrentFlow: (flow) => set((state) => ({
       currentFlow: { ...state.currentFlow, ...flow }
@@ -90,6 +122,54 @@ const useAppStore = create(
         ...state.portfolio,
         positions: [...state.portfolio.positions, position],
         totalValue: state.portfolio.totalValue + position.amount
+      }
+    })),
+    
+    setProtocolStats: (stats) => set((state) => ({
+      protocol: { ...state.protocol, ...stats }
+    })),
+    
+    // Complex actions
+    updateUserStats: (stats) => set((state) => ({
+      user: {
+        ...state.user,
+        totalInvested: stats.totalInvested || state.user.totalInvested,
+        totalEarned: stats.totalEarned || state.user.totalEarned,
+        assetsCreated: stats.assetsCreated || state.user.assetsCreated,
+        reputation: stats.reputation || state.user.reputation,
+      }
+    })),
+    
+    // Reset all data (for wallet disconnect)
+    resetAppState: () => set(() => ({
+      user: {
+        address: null,
+        isConnected: false,
+        kycStatus: 'pending',
+        reputation: 0,
+        totalInvested: 0,
+        totalEarned: 0,
+        assetsCreated: 0,
+      },
+      web3: {
+        isInitialized: false,
+        chainId: null,
+        networkName: '',
+        balances: { native: '0', token: '0' }
+      },
+      currentFlow: {
+        step: 0,
+        type: null,
+        data: {},
+        connection: null,
+        analysis: null,
+        offer: null,
+      },
+      portfolio: {
+        totalValue: 0,
+        positions: [],
+        payouts: [],
+        analytics: null,
       }
     })),
   }))

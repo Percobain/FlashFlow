@@ -8,467 +8,374 @@ import {
   Zap, 
   Users, 
   DollarSign,
-  FileText,
-  Monitor,
-  Camera,
-  Home as HomeIcon,
-  Gem
+  BarChart3,
+  Activity,
+  Globe,
+  Wallet
 } from 'lucide-react';
-import NBButton from '../components/NBButton';
-import NBCard from '../components/NBCard';
-import StatPill from '../components/StatPill';
-import PerformanceChart from '../components/PerformanceChart';
+import { formatNumber, formatCurrency } from '../lib/utils';
+
+// Import Web3Integration for testing
+import Web3Integration from '../components/Web3Integration';
 
 const Home = () => {
   const [stats, setStats] = useState({
-    totalLocked: 2400000,
-    investors: 1247,
-    avgAPY: 12.4,
-    payouts: 847
+    totalAssets: 2400000000, // 2.4B
+    totalFunded: 1800000000, // 1.8B
+    activeInvestors: 45000, // 45K
+    averageReturn: 12.3
   });
-  
-  // Mock live stats updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setStats(prev => ({
-        totalLocked: prev.totalLocked + Math.random() * 10000 - 5000,
-        investors: prev.investors + Math.floor(Math.random() * 3),
-        avgAPY: prev.avgAPY + (Math.random() - 0.5) * 0.1,
-        payouts: prev.payouts + Math.floor(Math.random() * 2)
-      }));
-    }, 5000);
-    
-    return () => clearInterval(interval);
-  }, []);
-  
-  const useCases = [
+
+  const [showWeb3Test, setShowWeb3Test] = useState(false);
+
+  const assetTypes = [
     {
       id: 'invoices',
-      title: 'Invoice Factoring',
-      description: 'Convert B2B invoices into immediate cash flow',
-      icon: FileText,
-      color: 'nb-accent',
-      stats: '$1.2M+ processed',
+      title: 'Invoices & Receivables',
+      description: 'Convert outstanding invoices into immediate cash flow',
+      icon: DollarSign,
+      color: 'from-green-400 to-green-600',
+      stats: { volume: 847000000, count: 12400, apy: 8.2 },
       path: '/invoices'
     },
     {
       id: 'saas',
-      title: 'SaaS MRR',
-      description: 'Monetize monthly recurring revenue streams',
-      icon: Monitor,
-      color: 'nb-accent-2',
-      stats: '150+ SaaS funded',
+      title: 'SaaS Revenue Streams', 
+      description: 'Tokenize recurring SaaS revenue for upfront capital',
+      icon: TrendingUp,
+      color: 'from-blue-400 to-blue-600',
+      stats: { volume: 423000000, count: 3200, apy: 11.5 },
       path: '/saas'
     },
     {
       id: 'creators',
       title: 'Creator Economy',
-      description: 'Fund content creators and influencers',
-      icon: Camera,
-      color: 'nb-purple',
-      stats: '500K+ followers',
+      description: 'Fund creators against future revenue potential',
+      icon: Users,
+      color: 'from-purple-400 to-purple-600', 
+      stats: { volume: 156000000, count: 8700, apy: 15.2 },
       path: '/creators'
     },
     {
       id: 'rentals',
-      title: 'Rental Income',
-      description: 'Tokenize real estate rental cash flows',
-      icon: HomeIcon,
-      color: 'nb-ok',
-      stats: '95% occupancy',
+      title: 'Real Estate Income',
+      description: 'Liquidity against rental property cash flows',
+      icon: BarChart3,
+      color: 'from-orange-400 to-orange-600',
+      stats: { volume: 892000000, count: 2100, apy: 9.8 },
       path: '/rentals'
+    }
+  ];
+
+  const features = [
+    {
+      icon: Shield,
+      title: 'AI-Powered Risk Assessment',
+      description: 'Advanced algorithms evaluate asset quality and predict payment behavior with 94% accuracy.'
     },
     {
-      id: 'luxury',
-      title: 'Luxury Assets',
-      description: 'Premium asset lease monetization',
-      icon: Gem,
-      color: 'nb-pink',
-      stats: '$500K+ assets',
-      path: '/luxury'
+      icon: Zap,
+      title: 'Instant Liquidity',
+      description: 'Access cash within minutes of asset verification. No lengthy approval processes.'
+    },
+    {
+      icon: Globe,
+      title: 'Global Asset Network',
+      description: 'Diversified exposure across industries, geographies, and asset classes for optimal returns.'
+    },
+    {
+      icon: Activity,
+      title: 'Real-Time Analytics',
+      description: 'Live performance tracking, risk monitoring, and automated rebalancing for your portfolio.'
     }
   ];
-  
-  const mockChartData = [
-    { date: '2025-01', value: 100 },
-    { date: '2025-02', value: 105 },
-    { date: '2025-03', value: 108 },
-    { date: '2025-04', value: 112 },
-    { date: '2025-05', value: 118 },
-    { date: '2025-06', value: 124 },
-    { date: '2025-07', value: 127 },
-    { date: '2025-08', value: 131 },
-    { date: '2025-09', value: 135 },
-  ];
-  
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
-  };
-  
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1 }
-  };
-  
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-nb-bg via-nb-accent/10 to-nb-accent-2/10 py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            className="text-center"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <motion.h1 
-              className="font-display font-bold text-5xl md:text-7xl text-nb-ink mb-6"
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
+      <section className="min-h-screen bg-gradient-to-br from-nb-bg via-nb-card to-nb-bg flex items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Left Column - Content */}
+            <motion.div
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+              className="space-y-8"
             >
-              Turn Tomorrow's Cash Into{' '}
-              <span className="text-transparent bg-gradient-to-r from-nb-accent to-nb-accent-2 bg-clip-text">
-                Today's Capital
-              </span>
-            </motion.h1>
-            
-            <motion.p 
-              className="text-xl text-nb-ink/70 mb-8 max-w-3xl mx-auto"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.4 }}
-            >
-              FlashFlow Protocol enables universal tokenization of cash flows across invoices, 
-              SaaS revenue, creator income, rentals, and luxury assets with AI-powered risk scoring.
-            </motion.p>
-            
-            <motion.div 
-              className="flex flex-col sm:flex-row gap-4 justify-center mb-12"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-            >
-              <Link to="/get-cash">
-                <NBButton size="xl" className="w-full sm:w-auto">
-                  Get Cash Now <ArrowRight className="ml-2" size={20} />
-                </NBButton>
-              </Link>
-              <Link to="/invest">
-                <NBButton variant="outline" size="xl" className="w-full sm:w-auto">
-                  Explore Investments
-                </NBButton>
-              </Link>
-            </motion.div>
-            
-            {/* Animated Cash Flow Visualization */}
-            <motion.div 
-              className="relative h-32 overflow-hidden rounded-nb bg-nb-card/50 backdrop-blur-sm nb-border"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8 }}
-            >
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="flex space-x-8 items-center">
-                  <div className="text-center">
-                    <div className="text-2xl mb-2">💰</div>
-                    <div className="text-sm text-nb-ink/60">Future Cash</div>
-                  </div>
-                  <motion.div
-                    className="flex space-x-2"
-                    animate={{ x: [0, 20, 0] }}
-                    transition={{ duration: 2, repeat: Infinity }}
+              <div className="space-y-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  className="inline-flex items-center space-x-2 bg-nb-accent/10 border border-nb-accent px-4 py-2 rounded-full"
+                >
+                  <Zap size={16} className="text-nb-accent" />
+                  <span className="text-sm font-medium text-nb-ink">AI-Powered Asset Financing</span>
+                </motion.div>
+                
+                <h1 className="text-4xl lg:text-6xl font-display font-bold text-nb-ink leading-tight">
+                  Turn Future Cash Flow Into{' '}
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-nb-accent to-nb-accent-2">
+                    Instant Liquidity
+                  </span>
+                </h1>
+                
+                <p className="text-xl text-nb-ink/70 leading-relaxed">
+                  FlashFlow connects asset originators with global investors through AI-driven risk assessment 
+                  and blockchain-secured transactions. Get funding in minutes, not months.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link to="/get-cash">
+                  <motion.button
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center space-x-2 bg-nb-accent hover:bg-nb-accent/90 text-nb-ink font-semibold px-6 py-3 rounded-nb nb-border shadow-nb-lg transition-all group"
                   >
-                    {[...Array(5)].map((_, i) => (
-                      <motion.div
-                        key={i}
-                        className="w-2 h-2 bg-nb-accent rounded-full"
-                        animate={{ opacity: [0.3, 1, 0.3] }}
-                        transition={{ duration: 1, delay: i * 0.2, repeat: Infinity }}
-                      />
-                    ))}
-                  </motion.div>
-                  <div className="text-center">
-                    <div className="text-2xl mb-2">🏦</div>
-                    <div className="text-sm text-nb-ink/60">Instant Capital</div>
+                    <DollarSign size={20} />
+                    <span>Get Cash Now</span>
+                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </motion.button>
+                </Link>
+                
+                <Link to="/invest">
+                  <motion.button
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center space-x-2 bg-nb-card border-2 border-nb-ink hover:bg-nb-accent/10 text-nb-ink font-semibold px-6 py-3 rounded-nb shadow-nb-sm transition-all group"
+                  >
+                    <TrendingUp size={20} />
+                    <span>Start Investing</span>
+                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </motion.button>
+                </Link>
+              </div>
+
+              {/* Web3 Test Button */}
+              <div className="pt-4">
+                <button
+                  onClick={() => setShowWeb3Test(!showWeb3Test)}
+                  className="flex items-center space-x-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold px-4 py-2 rounded-lg transition-colors"
+                >
+                  <Wallet size={16} />
+                  <span>{showWeb3Test ? 'Hide' : 'Show'} Web3 Integration Test</span>
+                </button>
+              </div>
+            </motion.div>
+
+            {/* Right Column - Stats Dashboard */}
+            <motion.div
+              initial={{ opacity: 0, x: 50 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+              className="relative"
+            >
+              <div className="bg-nb-card nb-border rounded-2xl shadow-nb-lg p-8 space-y-6">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-nb-ink">Protocol Statistics</h3>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-nb-ok rounded-full animate-pulse"></div>
+                    <span className="text-sm text-nb-ok font-medium">Live</span>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <p className="text-sm text-nb-ink/60">Total Assets</p>
+                    <p className="text-2xl font-bold text-nb-ink">{formatCurrency(stats.totalAssets)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm text-nb-ink/60">Total Funded</p>
+                    <p className="text-2xl font-bold text-nb-ink">{formatCurrency(stats.totalFunded)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm text-nb-ink/60">Active Investors</p>
+                    <p className="text-2xl font-bold text-nb-ink">{formatNumber(stats.activeInvestors)}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-sm text-nb-ink/60">Avg. Return</p>
+                    <p className="text-2xl font-bold text-nb-ok">{stats.averageReturn.toFixed(2)}%</p>
                   </div>
                 </div>
               </div>
             </motion.div>
-          </motion.div>
+          </div>
         </div>
       </section>
-      
-      {/* Live Stats Ticker */}
-      <section className="bg-nb-ink text-nb-card py-4">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
-            className="flex flex-wrap justify-center items-center gap-8"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
-            <motion.div variants={itemVariants}>
-              <StatPill
-                value={`$${(stats.totalLocked / 1000000).toFixed(1)}M`}
-                label="Total Locked"
-                icon={DollarSign}
-                color="nb-accent"
-                animated={false}
-              />
-            </motion.div>
-            <motion.div variants={itemVariants}>
-              <StatPill
-                value={stats.investors.toLocaleString()}
-                label="Investors"
-                icon={Users}
-                color="nb-accent-2"
-                animated={false}
-              />
-            </motion.div>
-            <motion.div variants={itemVariants}>
-              <StatPill
-                value={`${stats.avgAPY.toFixed(1)}%`}
-                label="Avg APY"
-                icon={TrendingUp}
-                color="nb-ok"
-                animated={false}
-              />
-            </motion.div>
-            <motion.div variants={itemVariants}>
-              <StatPill
-                value={stats.payouts.toLocaleString()}
-                label="Payouts Made"
-                icon={Zap}
-                color="nb-purple"
-                animated={false}
-              />
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-      
-      {/* Use Cases */}
-      <section className="py-20">
+
+      {/* Web3 Integration Test Section */}
+      {showWeb3Test && (
+        <section className="py-16 bg-nb-card border-t border-nb-ink">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-nb-ink mb-4">Web3 Integration Test</h2>
+              <p className="text-nb-ink/70">Test wallet connection and smart contract interactions</p>
+            </div>
+            <Web3Integration />
+          </div>
+        </section>
+      )}
+
+      {/* Asset Types Section */}
+      <section className="py-20 bg-nb-bg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            className="text-center mb-16"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
             viewport={{ once: true }}
+            className="text-center mb-16"
           >
-            <h2 className="font-display font-bold text-4xl text-nb-ink mb-4">
-              Universal Cash Flow Tokenization
+            <h2 className="text-3xl lg:text-4xl font-bold text-nb-ink mb-4">
+              Supported Asset Classes
             </h2>
             <p className="text-xl text-nb-ink/70 max-w-3xl mx-auto">
-              Five proven revenue streams, one unified protocol. Tokenize any cash flow 
-              with AI risk scoring and decentralized reputation.
+              Diversify your liquidity strategy across multiple asset types, each with unique risk profiles and return characteristics.
             </p>
           </motion.div>
-          
-          <motion.div 
-            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-          >
-            {useCases.map((useCase, index) => {
-              const Icon = useCase.icon;
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {assetTypes.map((asset, index) => {
+              const Icon = asset.icon;
               return (
-                <motion.div key={useCase.id} variants={itemVariants}>
-                  <Link to={useCase.path}>
-                    <NBCard className="h-full group cursor-pointer">
-                      <div className={`w-12 h-12 bg-${useCase.color} rounded-nb flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                        <Icon size={24} className="text-nb-ink" />
+                <motion.div
+                  key={asset.id}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                  whileHover={{ y: -8 }}
+                  className="group"
+                >
+                  <Link to={asset.path}>
+                    <div className="bg-nb-card nb-border rounded-xl p-6 shadow-nb-sm hover:shadow-nb-lg transition-all duration-300 h-full">
+                      <div className={`w-12 h-12 rounded-lg bg-gradient-to-r ${asset.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                        <Icon size={24} className="text-white" />
                       </div>
                       
-                      <h3 className="font-display font-bold text-xl text-nb-ink mb-2">
-                        {useCase.title}
+                      <h3 className="text-lg font-semibold text-nb-ink mb-2 group-hover:text-nb-accent transition-colors">
+                        {asset.title}
                       </h3>
                       
-                      <p className="text-nb-ink/70 mb-4">
-                        {useCase.description}
+                      <p className="text-nb-ink/70 text-sm mb-4 leading-relaxed">
+                        {asset.description}
                       </p>
                       
-                      <div className="flex justify-between items-center">
-                        <span className={`text-sm font-semibold text-${useCase.color.replace('nb-', '')}`}>
-                          {useCase.stats}
-                        </span>
-                        <ArrowRight 
-                          size={16} 
-                          className="text-nb-ink/40 group-hover:text-nb-ink group-hover:translate-x-1 transition-all" 
-                        />
+                      <div className="space-y-2 text-xs">
+                        <div className="flex justify-between">
+                          <span className="text-nb-ink/60">Volume:</span>
+                          <span className="font-semibold text-nb-ink">{formatCurrency(asset.stats.volume)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-nb-ink/60">Assets:</span>
+                          <span className="font-semibold text-nb-ink">{formatNumber(asset.stats.count)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-nb-ink/60">Avg APY:</span>
+                          <span className="font-semibold text-nb-ok">{asset.stats.apy.toFixed(2)}%</span>
+                        </div>
                       </div>
-                    </NBCard>
+                    </div>
                   </Link>
                 </motion.div>
               );
             })}
-          </motion.div>
+          </div>
         </div>
       </section>
-      
-      {/* How It Works */}
-      <section className="py-20 bg-nb-accent/5">
+
+      {/* Features Section */}
+      <section className="py-20 bg-nb-card">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
-            className="text-center mb-16"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
             viewport={{ once: true }}
+            className="text-center mb-16"
           >
-            <h2 className="font-display font-bold text-4xl text-nb-ink mb-4">
-              How FlashFlow Works
+            <h2 className="text-3xl lg:text-4xl font-bold text-nb-ink mb-4">
+              Why Choose FlashFlow?
             </h2>
-            <p className="text-xl text-nb-ink/70">
-              Three simple steps to unlock your cash flow potential
+            <p className="text-xl text-nb-ink/70 max-w-3xl mx-auto">
+              Built on cutting-edge technology to deliver the fastest, safest, and most efficient asset financing platform.
             </p>
           </motion.div>
-          
-          <div className="grid md:grid-cols-3 gap-8">
-            {[
-              {
-                step: '01',
-                title: 'Connect & Analyze',
-                description: 'Connect your revenue source and let our AI analyze your cash flow patterns with 90%+ accuracy',
-                icon: '🔗'
-              },
-              {
-                step: '02', 
-                title: 'Get Instant Offer',
-                description: 'Receive a personalized offer based on AI risk scoring and DID reputation within minutes',
-                icon: '⚡'
-              },
-              {
-                step: '03',
-                title: 'Tokenize & Earn',
-                description: 'Your cash flow is tokenized into baskets where investors can fund your future revenue',
-                icon: '💰'
-              }
-            ].map((item, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.2 }}
-              >
-                <NBCard>
-                  <div className="text-center">
-                    <div className="text-4xl mb-4">{item.icon}</div>
-                    <div className="text-6xl font-display font-bold text-nb-accent/20 mb-4">
-                      {item.step}
-                    </div>
-                    <h3 className="font-display font-bold text-xl text-nb-ink mb-4">
-                      {item.title}
-                    </h3>
-                    <p className="text-nb-ink/70">
-                      {item.description}
-                    </p>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {features.map((feature, index) => {
+              const Icon = feature.icon;
+              return (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: index * 0.1 }}
+                  viewport={{ once: true }}
+                  className="text-center group"
+                >
+                  <div className="w-16 h-16 bg-gradient-to-br from-nb-accent to-nb-accent-2 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform shadow-nb-sm">
+                    <Icon size={28} className="text-nb-ink" />
                   </div>
-                </NBCard>
-              </motion.div>
-            ))}
+                  
+                  <h3 className="text-lg font-semibold text-nb-ink mb-3">
+                    {feature.title}
+                  </h3>
+                  
+                  <p className="text-nb-ink/70 leading-relaxed">
+                    {feature.description}
+                  </p>
+                </motion.div>
+              );
+            })}
           </div>
         </div>
       </section>
-      
-      {/* Trust Indicators */}
-      <section className="py-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-8">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-            >
-              <NBCard>
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-12 h-12 bg-nb-accent rounded-nb flex items-center justify-center">
-                    <Shield size={24} className="text-nb-ink" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg">Powered by Self.xyz DID</h3>
-                    <p className="text-nb-ink/60">Universal reputation system</p>
-                  </div>
-                </div>
-                <p className="text-sm text-nb-ink/70">
-                  Cross-platform reputation tracking ensures trust and accountability 
-                  across all cash flow tokenization activities.
-                </p>
-              </NBCard>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-            >
-              <NBCard>
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-12 h-12 bg-nb-accent-2 rounded-nb flex items-center justify-center">
-                    <TrendingUp size={24} className="text-nb-ink" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg">AI Risk Oracle</h3>
-                    <p className="text-nb-ink/60">Real-time risk assessment</p>
-                  </div>
-                </div>
-                <p className="text-sm text-nb-ink/70">
-                  Advanced machine learning models provide transparent, 
-                  accurate risk scoring for all tokenized cash flows.
-                </p>
-              </NBCard>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.4 }}
-            >
-              <NBCard>
-                <div className="flex items-center space-x-4 mb-4">
-                  <div className="w-12 h-12 bg-nb-ok rounded-nb flex items-center justify-center">
-                    <Users size={24} className="text-nb-ink" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg">DAO Governance</h3>
-                    <p className="text-nb-ink/60">Community-driven protocol</p>
-                  </div>
-                </div>
-                <p className="text-sm text-nb-ink/70">
-                  Decentralized governance ensures fair, transparent 
-                  decision-making for protocol upgrades and parameters.
-                </p>
-              </NBCard>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-      
-      {/* Live Performance Chart */}
-      <section className="py-20 bg-nb-accent/5">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+
+      {/* CTA Section */}
+      <section className="py-20 bg-gradient-to-r from-nb-accent/10 to-nb-accent-2/10 border-t border-nb-ink">
+        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
             viewport={{ once: true }}
+            className="space-y-8"
           >
-            <PerformanceChart
-              title="Live Basket Performance"
-              data={mockChartData}
-              type="area"
-              color="#6EE7B7"
-              height={400}
-            />
+            <h2 className="text-3xl lg:text-4xl font-bold text-nb-ink">
+              Ready to Transform Your Cash Flow?
+            </h2>
+            <p className="text-xl text-nb-ink/70 max-w-2xl mx-auto">
+              Join thousands of businesses and investors who trust FlashFlow for their financing needs.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link to="/get-cash">
+                <motion.button
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center space-x-2 bg-nb-accent hover:bg-nb-accent/90 text-nb-ink font-semibold px-8 py-4 rounded-nb nb-border shadow-nb-lg transition-all group"
+                >
+                  <DollarSign size={20} />
+                  <span>Get Instant Funding</span>
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </motion.button>
+              </Link>
+              
+              <Link to="/invest">
+                <motion.button
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="flex items-center space-x-2 bg-nb-card border-2 border-nb-ink hover:bg-nb-accent/10 text-nb-ink font-semibold px-8 py-4 rounded-nb shadow-nb-sm transition-all group"
+                >
+                  <TrendingUp size={20} />
+                  <span>Start Investing</span>
+                  <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                </motion.button>
+              </Link>
+            </div>
           </motion.div>
         </div>
       </section>
