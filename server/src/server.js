@@ -55,6 +55,7 @@ const Investment = require("./models/Investment");
 
 // Import routes
 const basketsRouter = require("./routes/baskets");
+const analyticsRouter = require("./routes/analytics");
 
 // Initialize baskets on startup
 async function initializeBaskets() {
@@ -130,6 +131,9 @@ async function initializeBaskets() {
 
 // Use baskets router
 app.use("/api/baskets", basketsRouter);
+
+// Use analytics router
+app.use("/api/analytics", analyticsRouter);
 
 // 1. Create Asset (Main tokenization endpoint)
 app.post("/api/assets/create", upload.single("document"), async (req, res) => {
