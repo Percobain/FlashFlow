@@ -75,9 +75,9 @@ const Invest = () => {
                     status: basket.active ? "active" : "inactive",
                     safetyScore: minRisk,
                     safetyLevel:
-                        minRisk >= 90
+                        minRisk >= 85
                             ? "High"
-                            : minRisk >= 80
+                            : minRisk >= 75
                             ? "Medium"
                             : "Low",
                     composition:
@@ -627,15 +627,18 @@ const BasketCard = ({ basket }) => (
                 <div className="flex items-center justify-between mb-6">
                     <span
                         className={`px-4 py-2 text-xs font-black uppercase tracking-wide border-2 ${
-                            basket.status === "open" ||
-                            basket.status === "active"
-                                ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                                : "bg-gray-100 text-gray-800 border-gray-300"
+                            basket.safetyScore >= 85
+                                ? "bg-green-100 text-green-800 border-green-300"
+                                : basket.safetyScore >= 75
+                                ? "bg-yellow-100 text-yellow-800 border-yellow-300"
+                                : "bg-red-100 text-red-800 border-red-300"
                         }`}
                     >
-                        {basket.status === "open"
-                            ? "ACTIVE"
-                            : basket.status?.toUpperCase()}
+                        {basket.safetyScore >= 85
+                            ? "HIGH SAFETY"
+                            : basket.safetyScore >= 75
+                            ? "MEDIUM SAFETY"
+                            : "LOW SAFETY"}
                     </span>
                     <SafetyScoreBadge
                         score={basket.safetyScore}
