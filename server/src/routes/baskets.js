@@ -8,19 +8,25 @@ const BasketService = require("../services/BasketService");
 // GET /api/baskets
 router.get("/", async (req, res) => {
     try {
-        const { basketType, status = "open", page = 1, limit = 20 } = req.query;
+        // Get all baskets by default, with optional filtering
+        const { basketType, status, page = 1, limit = 50 } = req.query;
 
         const query = {};
-        if (basketType) query.basketType = basketType;
 
-        // Handle status mapping - treat 'active' filter as 'open' in database
+        // Only apply filters if explicitly provided
+        if (basketType) query.basketType = basketType;
         if (status) {
+            // Handle status mapping - treat 'active' filter as 'active' field in database
             if (status === "active") {
-                query.status = "open"; // Map frontend 'active' to backend 'open'
+                query.active = true;
+            } else if (status === "inactive") {
+                query.active = false;
             } else {
                 query.status = status;
             }
         }
+
+        console.log("🔍 Fetching baskets with query:", query);
 
         const baskets = await Basket.find(query)
             .sort({ createdAt: -1 })
@@ -28,45 +34,64 @@ router.get("/", async (req, res) => {
             .skip((page - 1) * limit)
             .lean();
 
+        console.log(`📊 Found ${baskets.length} baskets`);
+
         // Enrich with real-time data
         for (let basket of baskets) {
-            // Get actual asset count and values
-            const assets = await Asset.find({
-                basketId: basket.basketId,
-            }).lean();
-            const investments = await Investment.find({
-                basketId: basket.basketId,
-            }).lean();
+            try {
+                // Get actual asset count and values
+                const assets = await Asset.find({
+                    basketId: basket.basketId,
+                }).lean();
 
-            basket.actualAssetCount = assets.length;
-            basket.actualTotalValue = assets.reduce(
-                (sum, asset) => sum + asset.faceAmount,
-                0
-            );
-            basket.actualInvested = investments.reduce(
-                (sum, inv) => sum + inv.amount,
-                0
-            );
-            basket.availableToInvest =
-                basket.actualTotalValue * 0.85 - basket.actualInvested;
+                const investments = await Investment.find({
+                    basketId: basket.basketId,
+                }).lean();
+
+                // Calculate totals
+                const totalValue = assets.reduce(
+                    (sum, asset) =>
+                        sum + (asset.amount || asset.faceAmount || 0),
+                    0
+                );
+                const totalInvested = investments.reduce(
+                    (sum, inv) => sum + inv.amount,
+                    0
+                );
+
+                // Update basket with calculated values
+                basket.assetCount = assets.length;
+                basket.totalValue = totalValue.toString();
+                basket.totalInvested = totalInvested.toString();
+                basket.availableToInvest = Math.max(
+                    0,
+                    totalValue * 0.85 - totalInvested
+                );
+                basket.assets = assets.slice(0, 5); // Include first 5 assets for preview
+
+                console.log(
+                    `📈 Basket ${basket.basketId}: ${assets.length} assets, $${totalValue} total value`
+                );
+            } catch (assetError) {
+                console.error(
+                    `⚠️ Error enriching basket ${basket.basketId}:`,
+                    assetError.message
+                );
+                // Set defaults if enrichment fails
+                basket.assetCount = 0;
+                basket.totalValue = "0";
+                basket.totalInvested = "0";
+                basket.availableToInvest = 0;
+                basket.assets = [];
+            }
         }
 
-        const total = await Basket.countDocuments(query);
+        console.log(`✅ Returning ${baskets.length} enriched baskets`);
 
-        res.json({
-            success: true,
-            data: {
-                baskets,
-                pagination: {
-                    page: parseInt(page),
-                    limit: parseInt(limit),
-                    total,
-                    pages: Math.ceil(total / limit),
-                },
-            },
-        });
+        // Return baskets directly for frontend compatibility
+        res.json(baskets);
     } catch (error) {
-        console.error("Failed to fetch baskets:", error);
+        console.error("❌ Failed to fetch baskets:", error);
         res.status(500).json({
             success: false,
             error: error.message,
@@ -172,7 +197,7 @@ router.get("/:id", async (req, res) => {
                     averageRiskScore: Math.round(averageRiskScore),
                     assetCount: assets.length,
                     investorCount: new Set(
-                        investments.map((inv) => inv.investorAddress)
+                        investments.map((inv) => inv.investor)
                     ).size,
                     assetTypeDistribution,
                     riskScoreDistribution,
@@ -184,6 +209,73 @@ router.get("/:id", async (req, res) => {
         });
     } catch (error) {
         console.error("Failed to fetch basket details:", error);
+        res.status(500).json({
+            success: false,
+            error: error.message,
+        });
+    }
+});
+
+// POST /api/baskets/:id/invest
+router.post("/:id/invest", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { amount, investorAddress, transactionHash, blockNumber } =
+            req.body;
+
+        if (!amount || !investorAddress) {
+            return res.status(400).json({
+                success: false,
+                error: "Amount and investor address are required",
+            });
+        }
+
+        console.log(`💰 Processing investment in basket ${id}:`, {
+            amount,
+            investorAddress,
+            transactionHash,
+        });
+
+        // Verify basket exists
+        const basket = await Basket.findOne({ basketId: id });
+        if (!basket) {
+            return res.status(404).json({
+                success: false,
+                error: "Basket not found",
+            });
+        }
+
+        // Create investment record
+        const investment = new Investment({
+            basketId: id,
+            investor: investorAddress,
+            amount: parseFloat(amount),
+            timestamp: new Date(),
+            status: "confirmed",
+            // Store blockchain data as additional fields (not in schema but will be saved)
+            transactionHash,
+            blockNumber,
+        });
+
+        await investment.save();
+
+        console.log(`✅ Investment recorded:`, investment._id);
+
+        res.json({
+            success: true,
+            data: {
+                investmentId: investment._id,
+                basketId: id,
+                amount: parseFloat(amount),
+                investor: investorAddress,
+                transactionHash,
+                blockNumber,
+                status: "confirmed",
+                timestamp: investment.timestamp,
+            },
+        });
+    } catch (error) {
+        console.error("❌ Investment recording failed:", error);
         res.status(500).json({
             success: false,
             error: error.message,

@@ -53,6 +53,9 @@ const Asset = require("./models/Asset");
 const Basket = require("./models/Basket");
 const Investment = require("./models/Investment");
 
+// Import routes
+const basketsRouter = require("./routes/baskets");
+
 // Initialize baskets on startup
 async function initializeBaskets() {
     try {
@@ -124,6 +127,9 @@ async function initializeBaskets() {
 }
 
 // Routes
+
+// Use baskets router
+app.use("/api/baskets", basketsRouter);
 
 // 1. Create Asset (Main tokenization endpoint)
 app.post("/api/assets/create", upload.single("document"), async (req, res) => {
@@ -253,127 +259,7 @@ app.post("/api/assets/:assetId/fund", async (req, res) => {
     }
 });
 
-// 3. Get Baskets
-app.get("/api/baskets", async (req, res) => {
-    try {
-        const baskets = await Basket.find({ active: true });
-
-        // Get stats from blockchain
-        const basketsWithStats = await Promise.all(
-            baskets.map(async (basket) => {
-                try {
-                    const stats = await blockchainService.getBasketStats(
-                        basket.basketId
-                    );
-                    const assets = await Asset.find({
-                        basketId: basket.basketId,
-                    });
-
-                    return {
-                        ...basket.toObject(),
-                        totalValue: stats.totalValue || "0",
-                        totalInvested: stats.totalInvested || "0",
-                        assetCount: assets.length,
-                        assets: assets.slice(0, 5), // Recent 5 assets
-                    };
-                } catch (error) {
-                    console.error(
-                        `⚠️  Error getting stats for basket ${basket.basketId}:`,
-                        error.message
-                    );
-                    // Return basket with default stats
-                    return {
-                        ...basket.toObject(),
-                        totalValue: "0",
-                        totalInvested: "0",
-                        assetCount: 0,
-                        assets: [],
-                    };
-                }
-            })
-        );
-
-        res.json(basketsWithStats);
-    } catch (error) {
-        console.error("❌ Get baskets error:", error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// 3a. Get Basket Statistics
-app.get("/api/baskets/stats", async (req, res) => {
-    try {
-        const BasketService = require("./services/BasketService");
-        const stats = await BasketService.getBasketStatistics();
-
-        res.json({
-            success: true,
-            statistics: stats,
-            timestamp: new Date().toISOString(),
-        });
-    } catch (error) {
-        console.error("❌ Get basket statistics error:", error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// 3b. Get All Baskets with Details
-app.get("/api/baskets/all", async (req, res) => {
-    try {
-        const BasketService = require("./services/BasketService");
-        const baskets = await BasketService.getAllBaskets();
-
-        res.json({
-            success: true,
-            baskets,
-            count: baskets.length,
-            timestamp: new Date().toISOString(),
-        });
-    } catch (error) {
-        console.error("❌ Get all baskets error:", error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// 4. Invest in Basket
-app.post("/api/baskets/:basketId/invest", async (req, res) => {
-    try {
-        const { basketId } = req.params;
-        const { amount, investorAddress } = req.body;
-
-        if (!amount || !investorAddress) {
-            return res
-                .status(400)
-                .json({ error: "Amount and investor address required" });
-        }
-
-        // Save investment
-        const investment = new Investment({
-            basketId,
-            investor: investorAddress,
-            amount: parseFloat(amount),
-            timestamp: new Date(),
-        });
-        await investment.save();
-
-        // Get transaction data
-        const txData = blockchainService.getInvestTxData(
-            basketId,
-            parseFloat(amount)
-        );
-
-        res.json({
-            success: true,
-            investment: investment.toObject(),
-            txData,
-        });
-    } catch (error) {
-        console.error("❌ Investment error:", error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// 5. Simulate Repayment
+// 3. Simulate Repayment
 app.post("/api/assets/:assetId/repay", async (req, res) => {
     try {
         const { assetId } = req.params;
@@ -398,7 +284,7 @@ app.post("/api/assets/:assetId/repay", async (req, res) => {
     }
 });
 
-// 6. Get User Assets
+// 4. Get User Assets
 app.get("/api/users/:address/assets", async (req, res) => {
     try {
         const { address } = req.params;
@@ -412,7 +298,7 @@ app.get("/api/users/:address/assets", async (req, res) => {
     }
 });
 
-// 7. Get Pool Stats
+// 5. Get Pool Stats
 app.get("/api/stats", async (req, res) => {
     try {
         const stats = await blockchainService.getPoolStats();
@@ -427,7 +313,7 @@ app.get("/api/stats", async (req, res) => {
     }
 });
 
-// 7. AI Analysis endpoint with comprehensive AssetAnalysisService
+// 6. AI Analysis endpoint with comprehensive AssetAnalysisService
 app.post("/api/ai/analyze", async (req, res) => {
     try {
         console.log("🤖 Asset Analysis request received");
@@ -529,7 +415,7 @@ app.post("/api/ai/analyze", async (req, res) => {
     }
 });
 
-// 8. File Upload to Cloudflare R2 (JSON content)
+// 7. File Upload to Cloudflare R2 (JSON content)
 app.post("/api/storage/upload", upload.single("document"), async (req, res) => {
     try {
         const file = req.file;
@@ -576,7 +462,7 @@ app.post("/api/storage/upload", upload.single("document"), async (req, res) => {
     }
 });
 
-// 9. Alternative upload endpoint for form data
+// 8. Alternative upload endpoint for form data
 app.post("/api/upload", upload.single("file"), async (req, res) => {
     try {
         const file = req.file;
@@ -608,7 +494,7 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
     }
 });
 
-// 10. Get fUSD approval transaction data
+// 9. Get fUSD approval transaction data
 app.post("/api/fusd/approve", async (req, res) => {
     try {
         const { amount } = req.body;
@@ -641,7 +527,7 @@ app.post("/api/fusd/approve", async (req, res) => {
     }
 });
 
-// 11. Generate Mock Data
+// 10. Generate Mock Data
 app.get("/api/mock/generate", async (req, res) => {
     try {
         // Generate some mock assets

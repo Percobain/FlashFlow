@@ -23,6 +23,20 @@ class ApiService {
 
         try {
             const response = await fetch(url, config);
+
+            // Check if response is HTML (error page) instead of JSON
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.includes("text/html")) {
+                const htmlText = await response.text();
+                console.error(
+                    "❌ Received HTML instead of JSON:",
+                    htmlText.substring(0, 200)
+                );
+                throw new Error(
+                    `Server returned HTML instead of JSON. Status: ${response.status}`
+                );
+            }
+
             const data = await response.json();
 
             if (!response.ok) {
@@ -99,6 +113,11 @@ class ApiService {
     // 3. Get Basket Details
     async getBasketDetails(basketId) {
         return this.request(`/api/baskets/${basketId}`);
+    }
+
+    // 3a. Get Basket by ID (alias for compatibility)
+    async getBasket(basketId) {
+        return this.getBasketDetails(basketId);
     }
 
     // === SIMULATION ===
