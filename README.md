@@ -131,7 +131,7 @@ We integrated **Integra** for real estate assets because:
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/yourusername/FlashFlow.git
+git clone https://github.com/percobain/FlashFlow.git
 cd FlashFlow
 ```
 
@@ -576,3 +576,4 @@ PUBLIC_IP=81.15.150.183
 - **Environment variable** protection
 - **Database encryption** at rest
 - **Regular security audits**
+
